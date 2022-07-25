@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Mon Jul 25 15:22:59 2022
+# Make data base, printed on Mon Jul 25 16:37:52 2022
 
 # Variables
 
@@ -177,7 +177,7 @@ all:
 # Not a target:
 makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-07-25 15:22:53.442846248
+#  Last modified 2022-07-25 16:37:46.982195258
 #  File has been updated.
 #  Successfully updated.
 
@@ -192,7 +192,7 @@ thing:
 #  Modification time never checked.
 #  File has not been updated.
 #  recipe to execute (from 'makefile', line 2):
-	g++ test.cpp -o test; ./test input2.csv
+	g++ test.cpp -o test; ./test input2.csv -steps 2
 
 # files hash-table stats:
 # Load=5/1024=0%, Rehash=0, Collisions=0/15=0%
@@ -208,6 +208,6 @@ thing:
 # strcache performance: lookups = 21 / hit rate = 23%
 # hash-table stats:
 # Load=16/8192=0%, Rehash=0, Collisions=2/21=10%
-# Finished Make data base on Mon Jul 25 15:22:59 2022
+# Finished Make data base on Mon Jul 25 16:37:52 2022
 
  
