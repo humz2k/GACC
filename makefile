@@ -1,2 +1,2 @@
 thing:
-	nvcc eval.cu -Xcompiler="-fopenmp" -o eval
+	nvcc eval.cu -lineinfo -Xptxas -v -Xcompiler="-fopenmp -fPIC" -shared -o eval.dll

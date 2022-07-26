@@ -4,12 +4,13 @@ import pandas as pd
 import os
 import time
 
-def evaluate(filename,eps=0,G=1,steps=0,dt=1/64,backend="c++"):
+def evaluate(filename,eps=0,G=1,steps=0,dt=1/64):
 
     backends = {"c++":"0","openmp":"1","cuda":"2"}
 
-    call(["./eval",filename,"-eps",str(eps),"-G",str(G),"-steps", str(steps),"-dt", str(dt),"-backend", backends[backend]])
+    call(["./eval",filename,"-eps",str(eps),"-G",str(G),"-steps", str(steps),"-dt", str(dt)])
 
+    '''
     with open(filename,"r") as f:
         n_particles = len(f.readlines()) - 1
 
@@ -29,6 +30,7 @@ def evaluate(filename,eps=0,G=1,steps=0,dt=1/64,backend="c++"):
     os.remove(temp_file)
 
     return pd.concat([step_labels,ids,data],axis=1)
+    '''
 
 #first = time.perf_counter()
 #a = evaluate("input.csv",backend="openmp")
@@ -36,11 +38,7 @@ def evaluate(filename,eps=0,G=1,steps=0,dt=1/64,backend="c++"):
 #print(a)
 
 first = time.perf_counter()
-a = evaluate("input.csv",backend="cuda")
+a = evaluate("input.csv")
 second = time.perf_counter()
 print(second-first)
-
-first = time.perf_counter()
-a = evaluate("input.csv",backend="openmp")
-second = time.perf_counter()
-print(second-first)
+print(a)

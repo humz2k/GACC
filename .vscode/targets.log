@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Tue Jul 26 11:31:11 2022
+# Make data base, printed on Tue Jul 26 14:50:33 2022
 
 # Variables
 
@@ -49,7 +49,7 @@ LESSOPEN = | /usr/bin/lesspipe %s
 # environment
 VSCODE_CWD = /home/hqureshi
 # environment
-SSH_CONNECTION = 146.139.10.2 36644 146.139.10.20 22
+SSH_CONNECTION = 146.139.10.2 36891 146.139.10.20 22
 # environment
 PATH = /home/hqureshi/.vscode-server/bin/3b889b090b5ad5793f524b5d1d39fda662b96a2a/bin/remote-cli:/home/hqureshi/miniconda3/bin:/home/hqureshi/miniconda3/condabin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/cuda/bin:/usr/local/cuda/bin
 # environment
@@ -71,7 +71,7 @@ CONDA_EXE = /home/hqureshi/miniconda3/bin/conda
 # environment
 PWD = /home/hqureshi/GACC
 # environment
-VSCODE_IPC_HOOK_CLI = /run/user/333355/vscode-ipc-183bd34c-58e7-431e-a759-0ae3781a6e91.sock
+VSCODE_IPC_HOOK_CLI = /run/user/333355/vscode-ipc-32e7921f-a47f-42e5-b767-889ce3931bf0.sock
 # automatic
 *D = $(patsubst %/,%,$(dir $*))
 # environment
@@ -85,7 +85,7 @@ LESSCLOSE = /usr/bin/lesspipe %s %s
 # environment
 LOGNAME = hqureshi
 # environment
-APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = true
 # environment
 CONDA_PROMPT_MODIFIER = (base) 
 # automatic
@@ -105,7 +105,7 @@ MAKECMDGOALS := all
 # environment
 SHLVL = 3
 # environment
-XDG_SESSION_ID = 30564
+XDG_SESSION_ID = 30661
 # environment
 USER = hqureshi
 # makefile
@@ -125,10 +125,9 @@ MAKEFLAGS = pqrR
 # environment
 MFLAGS = -pqrR
 # environment
-SSH_CLIENT = 146.139.10.2 36644 22
+SSH_CLIENT = 146.139.10.2 36891 22
 # environment
 MAIL = /var/mail/hqureshi
- 
 # automatic
 +D = $(patsubst %/,%,$(dir $+))
 # environment
@@ -172,9 +171,9 @@ _CE_CONDA =
 
 # Directories
 
-# . (device 64769, inode 55315262): 14 files, no impossibilities.
+# . (device 64769, inode 55315262): 16 files, no impossibilities.
 
-# 14 files, no impossibilities in 1 directories.
+# 16 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -192,7 +191,7 @@ all:
 # Not a target:
 makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-07-26 11:30:48.360067403
+#  Last modified 2022-07-26 14:27:43.00327078
 #  File has been updated.
 #  Successfully updated.
 
@@ -207,7 +206,7 @@ thing:
 #  Modification time never checked.
 #  File has not been updated.
 #  recipe to execute (from 'makefile', line 2):
-	nvcc eval.cpp -Xcompiler="-fopenmp" -o eval
+	nvcc eval.cu -lineinfo -Xptxas -v -Xcompiler="-fopenmp" -o eval; ./eval input.csv
 
 # files hash-table stats:
 # Load=5/1024=0%, Rehash=0, Collisions=0/15=0%
@@ -217,12 +216,12 @@ thing:
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 20 / storage = 168 B / avg = 8 B
-# current buf: size = 8162 B / used = 168 B / count = 20 / avg = 8 B
+# strcache buffers: 1 (0) / strings = 22 / storage = 184 B / avg = 8 B
+# current buf: size = 8162 B / used = 184 B / count = 22 / avg = 8 B
 
-# strcache performance: lookups = 25 / hit rate = 20%
+# strcache performance: lookups = 27 / hit rate = 18%
 # hash-table stats:
-# Load=20/8192=0%, Rehash=0, Collisions=1/25=4%
-# Finished Make data base on Tue Jul 26 11:31:11 2022
+# Load=22/8192=0%, Rehash=0, Collisions=2/27=7%
+# Finished Make data base on Tue Jul 26 14:50:33 2022
 
  

@@ -83,12 +83,11 @@ int readFile(char* filename,float* x,float* y,float* z,float* vx,float* vy,float
 
 }
 
-extern "C" {
-    void printArray(float* array, int length){
-        for (int i = 0; i < length; i++){
-            printf("%lf\n",array[i]);
-        }
+void printArray(float* array, int length){
+    for (int i = 0; i < length; i++){
+        printf("%lf\n",array[i]);
     }
+
 }
 
 __global__
@@ -142,54 +141,130 @@ void save(int step, float* x, float* y, float* z, float* vx, float* vy, float* v
 }
 
 __global__
-void fast_add(float *s, float *d, float mul, int sDim0, int dDim0){
+void fast_add(float* sx, float* sy, float* sz, float* dx, float* dy, float* dz, float mul){
 
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
-    d[i * dDim0 + 0] = d[i * dDim0 + 0] + s[i * sDim0 + 0] * mul;
-    d[i * dDim0 + 1] = d[i * dDim0 + 1] + s[i * sDim0 + 1] * mul;
-    d[i * dDim0 + 2] = d[i * dDim0 + 2] + s[i * sDim0 + 2] * mul;
+    dx[i] = dx[i] + sx[i] * mul;
+    dy[i] = dy[i] + sy[i] * mul;
+    dz[i] = dz[i] + sz[i] * mul;
 
 }
 
 extern "C" { 
-    void c_evaluate(float* input_pos, float* input_vel, int n_particles, int steps, float G, float eps, float dt, int n_params){
+    void c_evaluate(char* filename, int steps, float G, float eps, float dt, int n_params){
 
-        int blockSize = 256;
-        int numBlocks = (n_particles + blockSize - 1) / blockSize;
+    std::ofstream out;
+    out.open( "out.dat", std::ios::out | std::ios::binary);
 
-        int pos_width = 4, vel_width = 3, height = n_particles;
-        float *d_pos,*d_vel,*d_acc_phi;
-        float *h_pos,*h_vel,*h_acc_phi;
-        size_t pos_input_pitch = 4 * sizeof(float), vel_input_pitch = 3 * sizeof(float);
+    std::ofstream &fp = out;
 
-        size_t pos_pitch;
-        cudaMallocPitch(&d_pos, &pos_pitch, pos_width * sizeof(float), height);
-        cudaMemcpy2D(d_pos,pos_pitch,input_pos,pos_input_pitch,pos_input_pitch,n_particles,cudaMemcpyHostToDevice);
-        h_pos = (float*) malloc(n_particles * 4 * sizeof(float));
+    //get number of particles
+    int n_particles = countLines(filename)-1;
 
-        size_t vel_pitch;
-        cudaMallocPitch(&d_vel, &vel_pitch, vel_width * sizeof(float), height);
-        cudaMemcpy2D(d_pos,vel_pitch,input_pos,vel_input_pitch,vel_input_pitch,n_particles,cudaMemcpyHostToDevice);
-        h_vel = (float*) malloc(n_particles * 3 * sizeof(float));
+    int blockSize = 256;
+    int numBlocks = (n_particles + blockSize - 1) / blockSize;
 
-        size_t acc_pitch;
-        cudaMallocPitch(&d_acc_phi, &acc_pitch, pos_width * sizeof(float), height);
-        h_acc_phi = (float*) malloc(n_particles * 4 * sizeof(float));
+    size_t size = n_particles * sizeof(float);
 
-        fast_add<<<numBlocks,blockSize>>>(d_vel,d_pos,1,3,4);
-        cudaMemcpy2D(h_pos,pos_input_pitch,d_pos,pos_pitch,pos_pitch,n_particles,cudaMemcpyDeviceToHost);
+    float *x,*y,*z,*vx,*vy,*vz,*ax,*ay,*az,*gpe,*mass;
+    
+    cudaMalloc(&x, size);
+    cudaMalloc(&y, size);
+    cudaMalloc(&z, size);
+    cudaMalloc(&vx, size);
+    cudaMalloc(&vy, size);
+    cudaMalloc(&vz, size);
+    cudaMalloc(&ax, size);
+    cudaMalloc(&ay, size);
+    cudaMalloc(&az, size);
+    cudaMalloc(&gpe, size);
+    cudaMalloc(&mass, size);
 
-        //SAVE THIS TO FILE AND READ IN PYTHON TO SEE IF IT WORKS
+    float *copy_x = (float*) malloc(size);
+    float *copy_y = (float*) malloc(size);
+    float *copy_z = (float*) malloc(size);
+    float *copy_vx = (float*) malloc(size);
+    float *copy_vy = (float*) malloc(size);
+    float *copy_vz = (float*) malloc(size);
+    float *copy_ax = (float*) malloc(size);
+    float *copy_ay = (float*) malloc(size);
+    float *copy_az = (float*) malloc(size);
+    float *copy_gpe = (float*) malloc(size);
+    float *copy_mass = (float*) malloc(size);
+    
+    readFile(filename,copy_x,copy_y,copy_z,copy_vx,copy_vy,copy_vz,copy_mass,",");
 
-        cudaFree(d_pos);
-        cudaFree(d_vel);
-        cudaFree(d_acc_phi);
-        free(h_pos);
-        free(h_vel);
-        free(h_acc_phi);
+    cudaMemcpy(x, copy_x, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(y, copy_y, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(z, copy_z, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(vx, copy_vx, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(vy, copy_vy, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(vz, copy_vz, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(ax, copy_ax, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(ay, copy_ay, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(az, copy_az, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(gpe, copy_gpe, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(mass, copy_mass, size, cudaMemcpyHostToDevice);
 
+    float eps_square = pow(eps,2);
+
+
+    cuda_parallel<<<numBlocks, blockSize>>>(x,y,z,ax,ay,az,gpe,mass,G,eps_square,n_particles);
+
+    for (int step = 0; step < steps + 1; step++){
+
+        cudaDeviceSynchronize();
+
+        cudaMemcpy(copy_x, x, size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(copy_y, y, size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(copy_z, z, size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(copy_vx, vx, size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(copy_vy, vy, size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(copy_vz, vz, size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(copy_ax, ax, size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(copy_ay, ay, size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(copy_az, az, size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(copy_gpe, gpe, size, cudaMemcpyDeviceToHost);
+
+        save(step,copy_x,copy_y,copy_z,copy_vx,copy_vy,copy_vz,copy_ax,copy_ay,copy_az,copy_gpe,n_particles,fp);
+
+        fast_add<<<numBlocks,blockSize>>>(ax,ay,az,vx,vy,vz,0.5);
+        fast_add<<<numBlocks,blockSize>>>(vx,vy,vz,x,y,z,1);
+
+        cuda_parallel<<<numBlocks, blockSize>>>(x,y,z,ax,ay,az,gpe,mass,G,eps_square,n_particles);
+
+        fast_add<<<numBlocks,blockSize>>>(ax,ay,az,vx,vy,vz,0.5);
     }
+
+    cudaFree(x);
+    cudaFree(y);
+    cudaFree(z);
+    cudaFree(vx);
+    cudaFree(vy);
+    cudaFree(vz);
+    cudaFree(ax);
+    cudaFree(ay);
+    cudaFree(az);
+    cudaFree(gpe);
+    cudaFree(mass);
+
+    
+    free(copy_x);
+    free(copy_y);
+    free(copy_z);
+    free(copy_vx);
+    free(copy_vy);
+    free(copy_vz);
+    free(copy_ax);
+    free(copy_ay);
+    free(copy_az);
+    free(copy_gpe);
+    free(copy_mass);
+
+    out.close();
+
+}
 
 }
 
@@ -216,7 +291,7 @@ int main(int argc, char* argv[]) {
         if (!strcmp(argv[i], "-dt")) dt = atof(argv[i + 1]);
     }
 
-    //c_evaluate(filename,steps,G,eps,dt,n_params);
+    c_evaluate(filename,steps,G,eps,dt,n_params);
 
     return 0;
 }
