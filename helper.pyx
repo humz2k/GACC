@@ -10,17 +10,18 @@ import os
 np.import_array()
 
 cdef extern from "eval.cpp":
-    void c_evaluate(char* filename, int steps, float G, float eps, float dt, int n_params)
+    void c_evaluate(char* filename, int steps, float G, float eps, float dt, int n_params, int backend)
 
-cdef char* input_file = 'input2.csv'
-
-cpdef object evaluate(str input_file, int steps = 0, float G = 1, float eps = 0, float dt = 1/64, int n_params=10, str temp_file = "out.dat"):
+cpdef object evaluate(str input_file, int steps = 0, float G = 1, float eps = 0, float dt = 1/64, int n_params=10, str temp_file = "out.dat", str backend = "C++"):
 
     with open(input_file,"r") as f:
         n_particles = len(f.readlines()) - 1
 
     cdef char* filename = input_file
-    c_evaluate(filename,steps,G,eps,dt,n_params)
+
+    backends = {"C++":0,"openmp":1}
+
+    c_evaluate(filename,steps,G,eps,dt,n_params,backends[backend])
 
     step_labels = np.repeat(np.arange(steps+1),n_particles)
     ids = np.repeat(np.reshape(np.arange(n_particles),(n_particles,1)),(steps+1),axis=1).flatten(order="F")

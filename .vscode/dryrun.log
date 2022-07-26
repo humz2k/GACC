@@ -1,5 +1,5 @@
 make --dry-run --keep-going --print-directory
 make: Entering directory '/home/hqureshi/GACC'
-g++ test.cpp -o test; ./test input2.csv -steps 2
+nvcc eval.cpp -Xcompiler="-fopenmp" -o eval
 make: Leaving directory '/home/hqureshi/GACC'
  

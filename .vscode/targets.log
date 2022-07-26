@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Mon Jul 25 16:37:52 2022
+# Make data base, printed on Tue Jul 26 11:31:11 2022
 
 # Variables
 
@@ -49,13 +49,15 @@ LESSOPEN = | /usr/bin/lesspipe %s
 # environment
 VSCODE_CWD = /home/hqureshi
 # environment
-SSH_CONNECTION = 146.139.10.2 35285 146.139.10.20 22
+SSH_CONNECTION = 146.139.10.2 36644 146.139.10.20 22
 # environment
-PATH = /home/hqureshi/.vscode-server/bin/3b889b090b5ad5793f524b5d1d39fda662b96a2a/bin/remote-cli:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/cuda/bin:/usr/local/cuda/bin
+PATH = /home/hqureshi/.vscode-server/bin/3b889b090b5ad5793f524b5d1d39fda662b96a2a/bin/remote-cli:/home/hqureshi/miniconda3/bin:/home/hqureshi/miniconda3/condabin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/cuda/bin:/usr/local/cuda/bin
 # environment
 XDG_RUNTIME_DIR = /run/user/333355
 # environment
 UBUNTU_MENUPROXY = 1
+# environment
+CONDA_PREFIX = /home/hqureshi/miniconda3
 # environment
 ELECTRON_RUN_AS_NODE = 1
 # default
@@ -65,9 +67,11 @@ LS_COLORS =
 # automatic
 %F = $(notdir $%)
 # environment
+CONDA_EXE = /home/hqureshi/miniconda3/bin/conda
+# environment
 PWD = /home/hqureshi/GACC
 # environment
-VSCODE_IPC_HOOK_CLI = /run/user/333355/vscode-ipc-a551b0ee-84b3-4b8c-ab0b-fdc6793803a9.sock
+VSCODE_IPC_HOOK_CLI = /run/user/333355/vscode-ipc-183bd34c-58e7-431e-a759-0ae3781a6e91.sock
 # automatic
 *D = $(patsubst %/,%,$(dir $*))
 # environment
@@ -81,7 +85,9 @@ LESSCLOSE = /usr/bin/lesspipe %s %s
 # environment
 LOGNAME = hqureshi
 # environment
-APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = true
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
+# environment
+CONDA_PROMPT_MODIFIER = (base) 
 # automatic
 +F = $(notdir $+)
 # environment
@@ -90,6 +96,8 @@ VSCODE_HANDLES_UNCAUGHT_ERRORS = true
 ^D = $(patsubst %/,%,$(dir $^))
 # environment
 MAKELEVEL := 0
+# environment
+CONDA_DEFAULT_ENV = base
 # default
 MAKE = $(MAKE_COMMAND)
 # default
@@ -97,17 +105,17 @@ MAKECMDGOALS := all
 # environment
 SHLVL = 3
 # environment
-XDG_SESSION_ID = 30034
+XDG_SESSION_ID = 30564
 # environment
 USER = hqureshi
 # makefile
 .DEFAULT_GOAL := thing
 # automatic
 %D = $(patsubst %/,%,$(dir $%))
+# environment
+CONDA_SHLVL = 1
 # default
 MAKE_COMMAND := make
-# environment
-OLDPWD = /home/hqureshi/.vscode-server/bin/3b889b090b5ad5793f524b5d1d39fda662b96a2a
 # default
 .VARIABLES := 
 # automatic
@@ -117,9 +125,10 @@ MAKEFLAGS = pqrR
 # environment
 MFLAGS = -pqrR
 # environment
-SSH_CLIENT = 146.139.10.2 35285 22
+SSH_CLIENT = 146.139.10.2 36644 22
 # environment
 MAIL = /var/mail/hqureshi
+ 
 # automatic
 +D = $(patsubst %/,%,$(dir $+))
 # environment
@@ -134,10 +143,14 @@ MAKEFILES :=
 <F = $(notdir $<)
 # environment
 LC_ALL = C
+# environment
+CONDA_PYTHON_EXE = /home/hqureshi/miniconda3/bin/python
 # automatic
 ^F = $(notdir $^)
 # default
 SUFFIXES := 
+# environment
+_CE_M = 
 # default
 .INCLUDE_DIRS = /usr/include /usr/local/include /usr/include
 # environment
@@ -148,8 +161,10 @@ CUDADIR = /usr/local/cuda
 MAKE_HOST := x86_64-pc-linux-gnu
 # environment
 LANG = C
+# environment
+_CE_CONDA = 
 # variable set hash-table stats:
-# Load=68/1024=7%, Rehash=0, Collisions=8/93=9%
+# Load=75/1024=7%, Rehash=0, Collisions=9/100=9%
 
 # Pattern-specific Variable Values
 
@@ -157,9 +172,9 @@ LANG = C
 
 # Directories
 
-# . (device 64769, inode 55315262): 10 files, no impossibilities.
+# . (device 64769, inode 55315262): 14 files, no impossibilities.
 
-# 10 files, no impossibilities in 1 directories.
+# 14 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -177,7 +192,7 @@ all:
 # Not a target:
 makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-07-25 16:37:46.982195258
+#  Last modified 2022-07-26 11:30:48.360067403
 #  File has been updated.
 #  Successfully updated.
 
@@ -192,7 +207,7 @@ thing:
 #  Modification time never checked.
 #  File has not been updated.
 #  recipe to execute (from 'makefile', line 2):
-	g++ test.cpp -o test; ./test input2.csv -steps 2
+	nvcc eval.cpp -Xcompiler="-fopenmp" -o eval
 
 # files hash-table stats:
 # Load=5/1024=0%, Rehash=0, Collisions=0/15=0%
@@ -202,12 +217,12 @@ thing:
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 16 / storage = 134 B / avg = 8 B
-# current buf: size = 8162 B / used = 134 B / count = 16 / avg = 8 B
+# strcache buffers: 1 (0) / strings = 20 / storage = 168 B / avg = 8 B
+# current buf: size = 8162 B / used = 168 B / count = 20 / avg = 8 B
 
-# strcache performance: lookups = 21 / hit rate = 23%
+# strcache performance: lookups = 25 / hit rate = 20%
 # hash-table stats:
-# Load=16/8192=0%, Rehash=0, Collisions=2/21=10%
-# Finished Make data base on Mon Jul 25 16:37:52 2022
+# Load=20/8192=0%, Rehash=0, Collisions=1/25=4%
+# Finished Make data base on Tue Jul 26 11:31:11 2022
 
  
