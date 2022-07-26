@@ -88,7 +88,7 @@ void printArray(float* array, int length){
 
 }
 
-void phi_acc(float* x, float* y, float* z, float* ax, float* ay, float* az, float* gpe, float* mass, float G, int n_particles){
+void phi_acc(float* x, float* y, float* z, float* ax, float* ay, float* az, float* gpe, float* mass, float G, float eps, int n_particles){
 
     for (int i = 0; i < n_particles; i++){
 
@@ -101,7 +101,7 @@ void phi_acc(float* x, float* y, float* z, float* ax, float* ay, float* az, floa
 
             if (i != j){
 
-                float dist = sqrt(pow((x[i] - x[j]),2) + pow((y[i] - y[j]),2) + pow((z[i] - z[j]),2));
+                float dist = sqrt(pow((x[i] - x[j]),2) + pow((y[i] - y[j]),2) + pow((z[i] - z[j]),2) + eps);
                 float acc_mul = G * mass[j] / pow(dist,3);
 
                 ax[i] = ax[i] + (x[j] - x[i]) * acc_mul;
@@ -114,24 +114,21 @@ void phi_acc(float* x, float* y, float* z, float* ax, float* ay, float* az, floa
     }
 }
 
-void save(int step, float* x, float* y, float* z, float* vx, float* vy, float* vz, float* ax, float* ay, float* az, float* gpe, int n_particles, float* output, int n_params){
-
-    int index = step * n_params * n_particles;
+void save(int step, float* x, float* y, float* z, float* vx, float* vy, float* vz, float* ax, float* ay, float* az, float* gpe, int n_particles, std::ofstream &out){
 
     for (int i = 0; i < n_particles; i++){
         
-        output[index + 0] = x[i];
-        output[index + 1] = y[i];
-        output[index + 2] = z[i];
-        output[index + 3] = vx[i];
-        output[index + 4] = vy[i];
-        output[index + 5] = vz[i];
-        output[index + 6] = ax[i];
-        output[index + 7] = ay[i];
-        output[index + 8] = az[i];
-        output[index + 9] = gpe[i];
+        out.write( reinterpret_cast<const char*>( &x[i]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &y[i]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &z[i]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &vx[i]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &vy[i]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &vz[i]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &ax[i]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &ay[i]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &az[i]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &gpe[i]), sizeof( float ));
 
-        index = index + n_params;
     }
     
 
@@ -147,11 +144,12 @@ void add(float* source, float* dest, float mul, int len){
 
 }
 
-void evaluate(char* filename, int steps, float G, float eps, float dt, int n_params){
+void c_evaluate(char* filename, int steps, float G, float eps, float dt, int n_params){
 
     std::ofstream out;
     out.open( "out.dat", std::ios::out | std::ios::binary);
 
+    std::ofstream &fp = out;
 
     //get number of particles
     int n_particles = countLines(filename)-1;
@@ -168,16 +166,15 @@ void evaluate(char* filename, int steps, float G, float eps, float dt, int n_par
     float* az = (float*) malloc(n_particles * sizeof(float));
     float* gpe = (float*) malloc(n_particles * sizeof(float));
     float* mass = (float*) malloc(n_particles * sizeof(float));
-
-    //malloc arrays to save
-    float* output = (float*) malloc((steps+1) * n_particles * n_params * sizeof(float));
     
     readFile(filename,x,y,z,vx,vy,vz,mass,",");
 
-    phi_acc(x,y,z,ax,ay,az,gpe,mass,G,n_particles);
+    float eps_square = pow(eps,2);
+
+    phi_acc(x,y,z,ax,ay,az,gpe,mass,G,eps_square,n_particles);
 
     for (int step = 0; step < steps + 1; step++){
-        save(step,x,y,z,vx,vy,vz,ax,ay,az,gpe,n_particles,output,n_params);
+        save(step,x,y,z,vx,vy,vz,ax,ay,az,gpe,n_particles,fp);
 
         add(ax,vx,0.5,n_particles);
         add(ay,vy,0.5,n_particles);
@@ -187,15 +184,11 @@ void evaluate(char* filename, int steps, float G, float eps, float dt, int n_par
         add(vy,y,1,n_particles);
         add(vz,z,1,n_particles);
 
-        phi_acc(x,y,z,ax,ay,az,gpe,mass,G,n_particles);
+        phi_acc(x,y,z,ax,ay,az,gpe,mass,G,eps_square,n_particles);
 
         add(ax,vx,0.5,n_particles);
         add(ay,vy,0.5,n_particles);
         add(az,vz,0.5,n_particles);
-    }
-
-    for (int i = 0; i < (steps+1) * n_particles * n_params; i++){
-        out.write( reinterpret_cast<const char*>( &output[i]), sizeof( float ));
     }
 
     free(x);
@@ -209,7 +202,6 @@ void evaluate(char* filename, int steps, float G, float eps, float dt, int n_par
     free(ay);
     free(gpe);
     free(mass);
-    free(output);
 
     out.close();
 
@@ -238,7 +230,7 @@ int main(int argc, char* argv[]) {
         if (!strcmp(argv[i], "-dt")) dt = atof(argv[i + 1]);
     }
 
-    evaluate(filename,steps,G,eps,dt,n_params);
+    c_evaluate(filename,steps,G,eps,dt,n_params);
 
     return 0;
 }

@@ -1,2 +1,2 @@
 thing:
-	g++ test.cpp -o test; ./test input2.csv -steps 2
+	g++-11 eval.cpp -o eval; ./eval input2.csv -steps 2
