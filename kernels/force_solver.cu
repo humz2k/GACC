@@ -5,8 +5,17 @@ void force_solve_gpu(float* pos, float* mass, float* acc_phi, float G, float eps
 
      //TODO: use local memory: make shared memory array of size blocksize. 
 
+    /*
     extern __shared__ float s[];
 
+    int n_repeats = (n_particles + 32 - 1) / 32;
+    int laneID = threadIdx.x % 32;
+
+    for (int i = 0; i < n_repeats; i++){
+
+    }*/
+    
+    
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     int j = 0;
 
@@ -62,4 +71,5 @@ void force_solve_gpu(float* pos, float* mass, float* acc_phi, float G, float eps
     acc_phi[i*4 + 1] = ay;
     acc_phi[i*4 + 2] = az;
     acc_phi[i*4 + 3] = gpe;
+    
 }

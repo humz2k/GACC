@@ -28,14 +28,14 @@ def evaluate(pos,vel,mass,steps=0,G=1,eps=0,dt=1/64,n_params=10,outname="out.dat
 
     return pd.concat([step_labels,ids,data],axis=1)
 
-a = pd.read_csv("input2.csv")
+a = pd.read_csv("input3.csv")
 pos = a.loc[:,["x","y","z"]].to_numpy()
 vel = a.loc[:,["vx","vy","vz"]].to_numpy()
 mass = a.loc[:,"mass"].to_numpy()
 
 first = time.perf_counter()
 
-b = evaluate(pos,vel,mass,steps=0)
+b = evaluate(pos,vel,mass,steps=0,G=1,eps=0,dt=1/64)
 
 second = time.perf_counter()
 
