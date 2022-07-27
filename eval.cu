@@ -92,50 +92,108 @@ extern "C" {
 }
 
 __global__
-void cuda_parallel(float* x, float* y, float* z, float* ax, float* ay, float* az, float* gpe, float* mass, float G, float eps, int n_particles){
+void cuda_parallel(float* pos, float* acc_phi, float G, float eps, int n_particles){
+
+     //TODO: use local memory: make shared memory array of size blocksize. 
 
     int i = blockDim.x * blockIdx.x + threadIdx.x;
+    int j;
 
-    //cudaMemset
+    float x_i = pos[i*4];
+    float y_i = pos[i*4 + 1];
+    float z_i = pos[i*4 + 2];
+    float mass_i = pos[i*4 + 3];
 
-    //use local memory: make shared memory array of size blocksize. 
+    float x_diff;
+    float y_diff;
+    float z_diff;
 
-    ax[i] = 0;
-    ay[i] = 0;
-    az[i] = 0;
-    gpe[i] = 0;
+    float x_j;
+    float y_j;
+    float z_j;
+    float mass_j;
 
-    for (int j = 0; j < n_particles; j++){
+    float ax = 0;
+    float ay = 0;
+    float az = 0;
+    float gpe = 0;
+
+    float temp0;
+    float temp1;
+    float temp2;
+
+    float dist;
+
+    for (j = 0; j < n_particles; j++){
 
         if (i != j){
 
-            float dist = sqrt(pow((x[i] - x[j]),2) + pow((y[i] - y[j]),2) + pow((z[i] - z[j]),2) + eps);
-            float acc_mul = G * mass[j] / pow(dist,3);
+            x_j = pos[j*4];
+            y_j = pos[j*4 + 1];
+            z_j = pos[j*4 + 2];
+            mass_j = pos[j*4 + 3];
 
-            ax[i] = ax[i] + (x[j] - x[i]) * acc_mul;
-            ay[i] = ay[i] + (y[j] - y[i]) * acc_mul;
-            az[i] = az[i] + (z[j] - z[i]) * acc_mul;
-            gpe[i] = gpe[i] + (-1) * G * mass[j] * mass[i] / dist;
+            x_diff = x_j - x_i;
+            y_diff = y_j - y_i;
+            z_diff = z_j - z_i;
+
+            temp1 = eps;
+
+            temp0 = pow(x_diff,2);
+            temp1 += temp0;
+            temp0 = pow(y_diff,2);
+            temp1 += temp0;
+            temp0 = pow(z_diff,2);
+            temp1 += temp0;
+
+            dist = sqrt(temp1);
+
+            if (dist != 0){
+
+                temp0 = pow(dist,3);
+                temp2 = G * mass_j;
+                temp1 = temp2 / temp0;
+
+                temp0 = x_diff * temp1;
+                ax += temp0;
+
+                temp0 = y_diff * temp1;
+                ay += temp0;
+
+                temp0 = z_diff * temp1;
+                az += temp0;
+
+                temp0 = -G;
+                temp1 = mass_j * mass_i;
+                temp2 = temp0 * temp1;
+
+                gpe += temp2 / dist;
+            }
 
         }
     }
 
+    acc_phi[i*4] = ax;
+    acc_phi[i*4 + 1] = ay;
+    acc_phi[i*4 + 2] = az;
+    acc_phi[i*4 + 3] = gpe;
+
 }
 
-void save(int step, float* x, float* y, float* z, float* vx, float* vy, float* vz, float* ax, float* ay, float* az, float* gpe, int n_particles, std::ofstream &out){
+void save(float* pos, float* vel, float* phi_acc, int n_particles, std::ofstream &out){
 
     for (int i = 0; i < n_particles; i++){
-        
-        out.write( reinterpret_cast<const char*>( &x[i]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &y[i]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &z[i]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &vx[i]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &vy[i]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &vz[i]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &ax[i]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &ay[i]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &az[i]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &gpe[i]), sizeof( float ));
+
+        out.write( reinterpret_cast<const char*>( &pos[i*4 + 0]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &pos[i*4 + 1]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &pos[i*4 + 2]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &vel[i*3 + 0]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &vel[i*3 + 1]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &vel[i*3 + 2]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &phi_acc[i*4 + 0]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &phi_acc[i*4 + 1]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &phi_acc[i*4 + 2]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &phi_acc[i*4 + 3]), sizeof( float ));
 
     }
 
@@ -155,33 +213,46 @@ void fast_add(float *s, float *d, float mul, int sDim0, int dDim0){
 extern "C" { 
     void c_evaluate(float* input_pos, float* input_vel, int n_particles, int steps, float G, float eps, float dt, int n_params){
 
+        std::ofstream out;
+        out.open( "out.dat", std::ios::out | std::ios::binary);
+        std::ofstream &fp = out;
+
         int blockSize = 256;
         int numBlocks = (n_particles + blockSize - 1) / blockSize;
 
         int pos_width = 4, vel_width = 3, height = n_particles;
+
         float *d_pos,*d_vel,*d_acc_phi;
         float *h_pos,*h_vel,*h_acc_phi;
-        size_t pos_input_pitch = 4 * sizeof(float), vel_input_pitch = 3 * sizeof(float);
 
-        size_t pos_pitch;
-        cudaMallocPitch(&d_pos, &pos_pitch, pos_width * sizeof(float), height);
-        cudaMemcpy2D(d_pos,pos_pitch,input_pos,pos_input_pitch,pos_input_pitch,n_particles,cudaMemcpyHostToDevice);
-        h_pos = (float*) malloc(n_particles * 4 * sizeof(float));
+        size_t size4 = (n_particles * 4) * sizeof(float);
+        size_t size3 = (n_particles * 3) * sizeof(float);
+        
+        h_pos = (float*) malloc(size4);
+        cudaMalloc(&d_pos,size4);
+        cudaMemcpy(d_pos,input_pos,n_particles * 4 * sizeof(float),cudaMemcpyHostToDevice);
 
-        size_t vel_pitch;
-        cudaMallocPitch(&d_vel, &vel_pitch, vel_width * sizeof(float), height);
-        cudaMemcpy2D(d_pos,vel_pitch,input_pos,vel_input_pitch,vel_input_pitch,n_particles,cudaMemcpyHostToDevice);
-        h_vel = (float*) malloc(n_particles * 3 * sizeof(float));
+        h_vel = (float*) malloc(size3);
+        cudaMalloc(&d_vel,size3);
+        cudaMemcpy(d_vel,input_vel,n_particles * 3 * sizeof(float),cudaMemcpyHostToDevice);
 
-        size_t acc_pitch;
-        cudaMallocPitch(&d_acc_phi, &acc_pitch, pos_width * sizeof(float), height);
-        h_acc_phi = (float*) malloc(n_particles * 4 * sizeof(float));
+        h_acc_phi = (float*) malloc(size4);
+        cudaMalloc(&d_acc_phi,size4);
 
-        fast_add<<<numBlocks,blockSize>>>(d_vel,d_pos,1,3,4);
-        cudaMemcpy2D(h_pos,pos_input_pitch,d_pos,pos_pitch,pos_pitch,n_particles,cudaMemcpyDeviceToHost);
+        cuda_parallel<<<numBlocks,blockSize>>>(d_pos,d_acc_phi,G,eps,n_particles);
 
-        //SAVE THIS TO FILE AND READ IN PYTHON TO SEE IF IT WORKS
+        for (int step = 0; step < steps + 1; step++){
 
+            cudaMemcpy(h_pos,d_pos,n_particles * 4 * sizeof(float),cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_vel,d_vel,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_acc_phi,d_acc_phi,n_particles * 4 * sizeof(float),cudaMemcpyDeviceToHost);
+
+            save(h_pos,h_vel,h_acc_phi,n_particles,fp);
+
+
+
+        }
+        
         cudaFree(d_pos);
         cudaFree(d_vel);
         cudaFree(d_acc_phi);
