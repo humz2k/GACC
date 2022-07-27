@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Wed Jul 27 12:29:50 2022
+# Make data base, printed on Wed Jul 27 14:00:23 2022
 
 # Variables
 
@@ -186,7 +186,7 @@ eval2:
 #  Modification time never checked.
 #  File has not been updated.
 #  recipe to execute (from 'makefile', line 5):
-	nvcc eval.cu force_solver.cu -lineinfo -Xptxas -v -Xcompiler="-fopenmp -fPIC" -o eval
+	nvcc eval.cu kernels/*.cu -lineinfo -Xptxas -v -Xcompiler="-fopenmp -fPIC" -o eval
 
 # Not a target:
 all:
@@ -198,7 +198,7 @@ all:
 # Not a target:
 makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-07-27 12:03:58.874175124
+#  Last modified 2022-07-27 13:01:09.776991132
 #  File has been updated.
 #  Successfully updated.
 
@@ -236,6 +236,6 @@ eval:
 # strcache performance: lookups = 33 / hit rate = 21%
 # hash-table stats:
 # Load=26/8192=0%, Rehash=0, Collisions=2/33=6%
-# Finished Make data base on Wed Jul 27 12:29:50 2022
+# Finished Make data base on Wed Jul 27 14:00:23 2022
 
  

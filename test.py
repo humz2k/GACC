@@ -40,6 +40,6 @@ b = evaluate(pos,vel,mass,steps=0)
 second = time.perf_counter()
 
 print(a)
-#print(b)
+print(b)
 
 print(second-first)

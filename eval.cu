@@ -92,54 +92,25 @@ extern "C" {
     }
 }
 
-void printFloat3(float3* array, int length){
-        for (int i = 0; i < length; i++){
-            cout << array[i].x << ",";
-            cout << array[i].y << ",";
-            cout << array[i].z << endl;
-        }
-    }
-
-void save(float3* pos, float3* vel, float4* phi_acc, int n_particles, std::ofstream &out){
+void save(float* pos, float* vel, float* phi_acc, int n_particles, std::ofstream &out){
 
     for (int i = 0; i < n_particles; i++){
 
-        out.write( reinterpret_cast<const char*>( &pos[i].x), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &pos[i].y), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &pos[i].z), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &pos[i*3]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &pos[i*3 + 1]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &pos[i*3 + 2]), sizeof( float ));
 
-        out.write( reinterpret_cast<const char*>( &vel[i].x), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &vel[i].y), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &vel[i].z), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &vel[i*3]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &vel[i*3 + 1]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &vel[i*3 + 2]), sizeof( float ));
 
-        out.write( reinterpret_cast<const char*>( &phi_acc[i].x), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &phi_acc[i].y), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &phi_acc[i].z), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &phi_acc[i].w), sizeof( float ));
-
-    }
-
-}
-
-void load2float4(float *s, float4 *d, int n){
-    for (int i = 0; i < n; i++){
-
-        d[i].x = s[i * 4];
-        d[i].y = s[i * 4 + 1];
-        d[i].z = s[i * 4 + 2];
-        d[i].w = s[i * 4 + 3];
+        out.write( reinterpret_cast<const char*>( &phi_acc[i*4]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &phi_acc[i*4 + 1]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &phi_acc[i*4 + 2]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &phi_acc[i*4 + 3]), sizeof( float ));
 
     }
-}
 
-void load2float3(float *s, float3 *d, int n){
-    for (int i = 0; i < n; i++){
-
-        d[i].x = s[i * 3];
-        d[i].y = s[i * 3 + 1];
-        d[i].z = s[i * 3 + 2];
-
-    }
 }
 
 extern "C" { 
@@ -152,50 +123,37 @@ extern "C" {
         int blockSize = 256;
         int numBlocks = (n_particles + blockSize - 1) / blockSize;
 
-        float3 *d_pos, *d_vel, *h_pos, *h_vel;
-        float4 *d_acc_phi, *h_acc_phi;
-        float *d_mass;
+        float *d_pos, *d_vel, *d_acc_phi, *h_pos, *h_vel, *h_acc_phi, *d_mass;
 
-        h_pos = (float3*) malloc(n_particles * sizeof(float3));
-        h_acc_phi = (float4*) malloc(n_particles * sizeof(float4));
-        h_vel = (float3*) malloc(n_particles * sizeof(float3));
+        h_pos = (float*) malloc(n_particles * 3 * sizeof(float));
+        h_acc_phi = (float*) malloc(n_particles * 4 * sizeof(float));
+        h_vel = (float*) malloc(n_particles * 3 * sizeof(float));
 
-        load2float3(input_pos,h_pos,n_particles);
-        load2float3(input_vel,h_vel,n_particles);
-
-        cudaMalloc(&d_pos,n_particles * sizeof(float3));
-        cudaMalloc(&d_acc_phi,n_particles * sizeof(float4));
-        cudaMalloc(&d_vel,n_particles * sizeof(float3));
+        cudaMalloc(&d_pos,n_particles * 3 * sizeof(float));
+        cudaMalloc(&d_acc_phi,n_particles * 4 * sizeof(float));
+        cudaMalloc(&d_vel,n_particles * 3 * sizeof(float));
         cudaMalloc(&d_mass,n_particles * sizeof(float));
 
-        cudaMemcpy(d_pos,h_pos,n_particles * sizeof(float3),cudaMemcpyHostToDevice);
-        cudaMemcpy(d_vel,h_vel,n_particles * sizeof(float3),cudaMemcpyHostToDevice);
+        cudaMemcpy(d_pos,input_pos,n_particles * 3 * sizeof(float),cudaMemcpyHostToDevice);
+        cudaMemcpy(d_vel,input_vel,n_particles * 3 * sizeof(float),cudaMemcpyHostToDevice);
         cudaMemcpy(d_mass,input_mass,n_particles * sizeof(float),cudaMemcpyHostToDevice);
 
-        //printFloat3(h_pos,n_particles);
-        //cout << "" << endl;
-        //printFloat3(h_vel,n_particles);
-        //cout << "" << endl;
-        //printArray(input_mass,n_particles);
-
-        force_solve_gpu<<<numBlocks,blockSize>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
+        force_solve_gpu<<<numBlocks,blockSize,n_particles*4*sizeof(float)>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
 
         for (int step = 0; step < steps + 1; step++){
 
-            cudaMemcpy(h_pos,d_pos,n_particles * sizeof(float3),cudaMemcpyDeviceToHost);
-            cudaMemcpy(h_vel,d_vel,n_particles * sizeof(float3),cudaMemcpyDeviceToHost);
-            cudaMemcpy(h_acc_phi,d_acc_phi,n_particles * sizeof(float4),cudaMemcpyDeviceToHost);
-
-            printFloat3(h_vel,n_particles);
+            cudaMemcpy(h_pos,d_pos,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_vel,d_vel,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_acc_phi,d_acc_phi,n_particles * 4 * sizeof(float),cudaMemcpyDeviceToHost);
 
             save(h_pos,h_vel,h_acc_phi,n_particles,fp);
 
-            //fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5);
-            //fast_add_3to3<<<numBlocks,blockSize>>>(d_vel,d_pos,1);
+            fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5);
+            fast_add_3to3<<<numBlocks,blockSize>>>(d_vel,d_pos,1);
 
-            //force_solve_gpu<<<numBlocks,blockSize>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
+            force_solve_gpu<<<numBlocks,blockSize,n_particles*4*sizeof(float)>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
 
-            //fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5);
+            fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5);
 
         }
 
