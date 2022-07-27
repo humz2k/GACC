@@ -1,45 +1,46 @@
-# ctypes_test.py
-import ctypes
-import pathlib
-import numpy as np
+import sim
+import util
 import pandas as pd
 import time
+import numpy as np
+import matplotlib.pyplot as plt
 
-if __name__ == "__main__":
-    # Load the shared library into ctypes
-    libname = pathlib.Path().absolute() / "eval.dll"
-    c_lib = ctypes.CDLL(libname)
+testdf = util.Distributions.Uniform(32)
+sim.evaluate(testdf,steps=0,dt=1/64,solver=1)
 
-def evaluate(pos,vel,mass,steps=0,G=1,eps=0,dt=1/64,n_params=10,outname="out.dat"):
+ns = np.arange(start=1,stop=80,step=10)**2 * 128
+nsteps = 0
 
-    posPtr = pos.flatten().astype(np.float32).ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-    velPtr = vel.flatten().astype(np.float32).ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-    massPtr = mass.flatten().astype(np.float32).ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-    n_particles = pos.shape[0]
+ys = []
+xs = []
+save_ys = []
 
-    step_labels = np.repeat(np.arange(steps+1),n_particles)
-    ids = np.repeat(np.reshape(np.arange(n_particles),(n_particles,1)),(steps+1),axis=1).flatten(order="F")
+for n in ns:
+    
+    for i in range(2):
+        print(n)
+        df = util.Distributions.Plummer(n)
+        first = time.perf_counter()
+        out,save_time = sim.evaluate(df,steps=nsteps,dt=1/64,solver=0)
+        second = time.perf_counter()
+        save_ys.append(save_time)
+        xs.append(n)
+        ys.append(second-first)
+        print(save_time/(second-first))
 
-    c_lib.c_evaluate(posPtr,velPtr,massPtr,ctypes.c_int(n_particles),ctypes.c_int(steps),ctypes.c_float(G),ctypes.c_float(eps),ctypes.c_float(dt),ctypes.c_int(n_params))
+plt.scatter(xs,ys,label="execution")
+plt.scatter(xs,save_ys,label="save")
+plt.xlabel('n')
+plt.ylabel('execution time')
+plt.legend()
+plt.tight_layout()
+plt.savefig('time.jpg')
 
-    step_labels = pd.DataFrame(step_labels,columns=["step"],dtype=int)
-    ids = pd.DataFrame(ids,columns=["id"],dtype=int)
-    data = pd.DataFrame(np.fromfile(outname,dtype=np.float32,sep="").reshape((steps+1)*n_particles,n_params),columns=["x","y","z","vx","vy","vz","ax","ay","az","gpe"])
+#first1 = time.perf_counter()
+#out1 = sim.evaluate(df,steps=nsteps,dt=1/64,solver=0)
+#second1 = time.perf_counter()
 
-    return pd.concat([step_labels,ids,data],axis=1)
+#error = np.abs(out.loc[:,["ax","ay","az","gpe"]].to_numpy() - out1.loc[:,["ax","ay","az","gpe"]].to_numpy())
+#print(error[-10:])
 
-a = pd.read_csv("input3.csv")
-pos = a.loc[:,["x","y","z"]].to_numpy()
-vel = a.loc[:,["vx","vy","vz"]].to_numpy()
-mass = a.loc[:,"mass"].to_numpy()
-
-first = time.perf_counter()
-
-b = evaluate(pos,vel,mass,steps=0,G=1,eps=0,dt=1/64)
-
-second = time.perf_counter()
-
-print(a)
-print(b)
-
-print(second-first)
+#print(second-first,second1-first1)

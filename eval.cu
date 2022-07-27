@@ -114,46 +114,102 @@ void save(float* pos, float* vel, float* phi_acc, int n_particles, std::ofstream
 }
 
 extern "C" { 
-    void c_evaluate(float* input_pos, float* input_vel, float* input_mass, int n_particles, int steps, float G, float eps, float dt, int n_params){
+    double c_evaluate(float* input_pos, float* input_vel, float* input_mass, int n_particles, int steps, float G, float eps, float dt, int n_params, int solver, int v){
+
+        double first,second;
 
         std::ofstream out;
         out.open( "out.dat", std::ios::out | std::ios::binary);
         std::ofstream &fp = out;
 
-        int blockSize = 256;
+        int blockSize = n_particles;
+        if (blockSize > 256){
+            
+            if ((n_particles % 256) == 0){
+                blockSize = 256;
+            } else if ((n_particles % 128) == 0){
+                blockSize = 128;
+            } else if ((n_particles % 64) == 0){
+                blockSize = 64;
+            } else if ((n_particles % 32) == 0){
+                blockSize = 32;
+            }
+
+        }
         int numBlocks = (n_particles + blockSize - 1) / blockSize;
 
-        float *d_pos, *d_vel, *d_acc_phi, *h_pos, *h_vel, *h_acc_phi, *d_mass;
+        if (v){
+            cout << "numBlocks" << numBlocks << endl;
+            cout << "blockSize" << blockSize << endl;
+        }
 
-        h_pos = (float*) malloc(n_particles * 3 * sizeof(float));
-        h_acc_phi = (float*) malloc(n_particles * 4 * sizeof(float));
-        h_vel = (float*) malloc(n_particles * 3 * sizeof(float));
+        float *h_pos = (float*) malloc(n_particles * 3 * sizeof(float));
+        float *h_acc_phi = (float*) malloc(n_particles * 4 * sizeof(float));
+        float* h_vel = (float*) malloc(n_particles * 3 * sizeof(float));
 
+        float *d_pos;
         cudaMalloc(&d_pos,n_particles * 3 * sizeof(float));
+
+        float *d_acc_phi;
         cudaMalloc(&d_acc_phi,n_particles * 4 * sizeof(float));
+
+        float *d_vel;
         cudaMalloc(&d_vel,n_particles * 3 * sizeof(float));
+
+        float *d_mass;
         cudaMalloc(&d_mass,n_particles * sizeof(float));
 
         cudaMemcpy(d_pos,input_pos,n_particles * 3 * sizeof(float),cudaMemcpyHostToDevice);
         cudaMemcpy(d_vel,input_vel,n_particles * 3 * sizeof(float),cudaMemcpyHostToDevice);
         cudaMemcpy(d_mass,input_mass,n_particles * sizeof(float),cudaMemcpyHostToDevice);
 
-        force_solve_gpu<<<numBlocks,blockSize,n_particles*4*sizeof(float)>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
+        switch (solver){
 
-        for (int step = 0; step < steps + 1; step++){
+            case 0:
+                force_solve_gpu<<<numBlocks,blockSize>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
+                break;
+            
+            case 1:
+                force_solve_shared_mem<<<numBlocks,blockSize,blockSize * 4 * sizeof(float)>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
+                break;
+
+        }
+
+        cudaMemcpy(h_pos,d_pos,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_vel,d_vel,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_acc_phi,d_acc_phi,n_particles * 4 * sizeof(float),cudaMemcpyDeviceToHost);
+
+        first = omp_get_wtime();
+
+        save(h_pos,h_vel,h_acc_phi,n_particles,fp);
+
+        second = omp_get_wtime();
+
+
+        for (int step = 0; step < steps; step++){
+
+            fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5 * dt);
+            fast_add_3to3<<<numBlocks,blockSize,n_particles * 4 * sizeof(float)>>>(d_vel,d_pos,1 * dt);
+
+            switch (solver){
+
+                case 0:
+                    force_solve_gpu<<<numBlocks,blockSize>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
+                    break;
+                
+                case 1:
+                    force_solve_shared_mem<<<numBlocks,blockSize,blockSize * 4 * sizeof(float)>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
+                    break;
+
+            }
+
+            fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5 * dt);
 
             cudaMemcpy(h_pos,d_pos,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
             cudaMemcpy(h_vel,d_vel,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
             cudaMemcpy(h_acc_phi,d_acc_phi,n_particles * 4 * sizeof(float),cudaMemcpyDeviceToHost);
 
             save(h_pos,h_vel,h_acc_phi,n_particles,fp);
-
-            fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5);
-            fast_add_3to3<<<numBlocks,blockSize>>>(d_vel,d_pos,1);
-
-            force_solve_gpu<<<numBlocks,blockSize,n_particles*4*sizeof(float)>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
-
-            fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5);
 
         }
 
@@ -166,6 +222,7 @@ extern "C" {
         free(h_vel);
         free(h_acc_phi);
 
+        return double(second-first);
 
         /*
 
