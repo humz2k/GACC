@@ -6,6 +6,7 @@
 #include <cmath>
 #include <omp.h>
 #include "eval.h"
+#include "kernels/kernels.h"
 
 using namespace std;
 
@@ -91,127 +92,58 @@ extern "C" {
     }
 }
 
-__global__
-void cuda_parallel(float* pos, float* acc_phi, float G, float eps, int n_particles){
-
-     //TODO: use local memory: make shared memory array of size blocksize. 
-
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-    int j;
-
-    float x_i = pos[i*4];
-    float y_i = pos[i*4 + 1];
-    float z_i = pos[i*4 + 2];
-    float mass_i = pos[i*4 + 3];
-
-    float x_diff;
-    float y_diff;
-    float z_diff;
-
-    float x_j;
-    float y_j;
-    float z_j;
-    float mass_j;
-
-    float ax = 0;
-    float ay = 0;
-    float az = 0;
-    float gpe = 0;
-
-    float temp0;
-    float temp1;
-    float temp2;
-
-    float dist;
-
-    for (j = 0; j < n_particles; j++){
-
-        if (i != j){
-
-            x_j = pos[j*4];
-            y_j = pos[j*4 + 1];
-            z_j = pos[j*4 + 2];
-            mass_j = pos[j*4 + 3];
-
-            x_diff = x_j - x_i;
-            y_diff = y_j - y_i;
-            z_diff = z_j - z_i;
-
-            temp1 = eps;
-
-            temp0 = pow(x_diff,2);
-            temp1 += temp0;
-            temp0 = pow(y_diff,2);
-            temp1 += temp0;
-            temp0 = pow(z_diff,2);
-            temp1 += temp0;
-
-            dist = sqrt(temp1);
-
-            if (dist != 0){
-
-                temp0 = pow(dist,3);
-                temp2 = G * mass_j;
-                temp1 = temp2 / temp0;
-
-                temp0 = x_diff * temp1;
-                ax += temp0;
-
-                temp0 = y_diff * temp1;
-                ay += temp0;
-
-                temp0 = z_diff * temp1;
-                az += temp0;
-
-                temp0 = -G;
-                temp1 = mass_j * mass_i;
-                temp2 = temp0 * temp1;
-
-                gpe += temp2 / dist;
-            }
-
+void printFloat3(float3* array, int length){
+        for (int i = 0; i < length; i++){
+            cout << array[i].x << ",";
+            cout << array[i].y << ",";
+            cout << array[i].z << endl;
         }
     }
 
-    acc_phi[i*4] = ax;
-    acc_phi[i*4 + 1] = ay;
-    acc_phi[i*4 + 2] = az;
-    acc_phi[i*4 + 3] = gpe;
-
-}
-
-void save(float* pos, float* vel, float* phi_acc, int n_particles, std::ofstream &out){
+void save(float3* pos, float3* vel, float4* phi_acc, int n_particles, std::ofstream &out){
 
     for (int i = 0; i < n_particles; i++){
 
-        out.write( reinterpret_cast<const char*>( &pos[i*4 + 0]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &pos[i*4 + 1]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &pos[i*4 + 2]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &vel[i*3 + 0]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &vel[i*3 + 1]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &vel[i*3 + 2]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &phi_acc[i*4 + 0]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &phi_acc[i*4 + 1]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &phi_acc[i*4 + 2]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &phi_acc[i*4 + 3]), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &pos[i].x), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &pos[i].y), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &pos[i].z), sizeof( float ));
+
+        out.write( reinterpret_cast<const char*>( &vel[i].x), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &vel[i].y), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &vel[i].z), sizeof( float ));
+
+        out.write( reinterpret_cast<const char*>( &phi_acc[i].x), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &phi_acc[i].y), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &phi_acc[i].z), sizeof( float ));
+        out.write( reinterpret_cast<const char*>( &phi_acc[i].w), sizeof( float ));
 
     }
 
 }
 
-__global__
-void fast_add(float *s, float *d, float mul, int sDim0, int dDim0){
+void load2float4(float *s, float4 *d, int n){
+    for (int i = 0; i < n; i++){
 
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
+        d[i].x = s[i * 4];
+        d[i].y = s[i * 4 + 1];
+        d[i].z = s[i * 4 + 2];
+        d[i].w = s[i * 4 + 3];
 
-    d[i * dDim0 + 0] = d[i * dDim0 + 0] + s[i * sDim0 + 0] * mul;
-    d[i * dDim0 + 1] = d[i * dDim0 + 1] + s[i * sDim0 + 1] * mul;
-    d[i * dDim0 + 2] = d[i * dDim0 + 2] + s[i * sDim0 + 2] * mul;
+    }
+}
 
+void load2float3(float *s, float3 *d, int n){
+    for (int i = 0; i < n; i++){
+
+        d[i].x = s[i * 3];
+        d[i].y = s[i * 3 + 1];
+        d[i].z = s[i * 3 + 2];
+
+    }
 }
 
 extern "C" { 
-    void c_evaluate(float* input_pos, float* input_vel, int n_particles, int steps, float G, float eps, float dt, int n_params){
+    void c_evaluate(float* input_pos, float* input_vel, float* input_mass, int n_particles, int steps, float G, float eps, float dt, int n_params){
 
         std::ofstream out;
         out.open( "out.dat", std::ios::out | std::ios::binary);
@@ -219,6 +151,65 @@ extern "C" {
 
         int blockSize = 256;
         int numBlocks = (n_particles + blockSize - 1) / blockSize;
+
+        float3 *d_pos, *d_vel, *h_pos, *h_vel;
+        float4 *d_acc_phi, *h_acc_phi;
+        float *d_mass;
+
+        h_pos = (float3*) malloc(n_particles * sizeof(float3));
+        h_acc_phi = (float4*) malloc(n_particles * sizeof(float4));
+        h_vel = (float3*) malloc(n_particles * sizeof(float3));
+
+        load2float3(input_pos,h_pos,n_particles);
+        load2float3(input_vel,h_vel,n_particles);
+
+        cudaMalloc(&d_pos,n_particles * sizeof(float3));
+        cudaMalloc(&d_acc_phi,n_particles * sizeof(float4));
+        cudaMalloc(&d_vel,n_particles * sizeof(float3));
+        cudaMalloc(&d_mass,n_particles * sizeof(float));
+
+        cudaMemcpy(d_pos,h_pos,n_particles * sizeof(float3),cudaMemcpyHostToDevice);
+        cudaMemcpy(d_vel,h_vel,n_particles * sizeof(float3),cudaMemcpyHostToDevice);
+        cudaMemcpy(d_mass,input_mass,n_particles * sizeof(float),cudaMemcpyHostToDevice);
+
+        //printFloat3(h_pos,n_particles);
+        //cout << "" << endl;
+        //printFloat3(h_vel,n_particles);
+        //cout << "" << endl;
+        //printArray(input_mass,n_particles);
+
+        force_solve_gpu<<<numBlocks,blockSize>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
+
+        for (int step = 0; step < steps + 1; step++){
+
+            cudaMemcpy(h_pos,d_pos,n_particles * sizeof(float3),cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_vel,d_vel,n_particles * sizeof(float3),cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_acc_phi,d_acc_phi,n_particles * sizeof(float4),cudaMemcpyDeviceToHost);
+
+            printFloat3(h_vel,n_particles);
+
+            save(h_pos,h_vel,h_acc_phi,n_particles,fp);
+
+            //fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5);
+            //fast_add_3to3<<<numBlocks,blockSize>>>(d_vel,d_pos,1);
+
+            //force_solve_gpu<<<numBlocks,blockSize>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
+
+            //fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5);
+
+        }
+
+        cudaFree(d_pos);
+        cudaFree(d_vel);
+        cudaFree(d_acc_phi);
+        cudaFree(d_mass);
+
+        free(h_pos);
+        free(h_vel);
+        free(h_acc_phi);
+
+
+        /*
 
         int pos_width = 4, vel_width = 3, height = n_particles;
 
@@ -239,7 +230,7 @@ extern "C" {
         h_acc_phi = (float*) malloc(size4);
         cudaMalloc(&d_acc_phi,size4);
 
-        cuda_parallel<<<numBlocks,blockSize>>>(d_pos,d_acc_phi,G,eps,n_particles);
+        force_solve_gpu<<<numBlocks,blockSize>>>(d_pos,d_acc_phi,G,eps,n_particles);
 
         for (int step = 0; step < steps + 1; step++){
 
@@ -249,7 +240,12 @@ extern "C" {
 
             save(h_pos,h_vel,h_acc_phi,n_particles,fp);
 
+            fast_add<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5,4,3);
+            fast_add<<<numBlocks,blockSize>>>(d_vel,d_pos,1,3,4);
 
+            force_solve_gpu<<<numBlocks,blockSize>>>(d_pos,d_acc_phi,G,eps,n_particles);
+
+            fast_add<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5,4,3);
 
         }
         
@@ -259,35 +255,11 @@ extern "C" {
         free(h_pos);
         free(h_vel);
         free(h_acc_phi);
-
+        */
     }
-
 }
 
-int main(int argc, char* argv[]) {
-
-    const int n_params = 10;
-
-    char* filename;
-    float eps = 0;
-    int steps = 0;
-    float G = 1;
-    float dt = 1/64;
-
-    if (argc == 1){
-        fprintf(stderr,"FILE NOT SPECIFIED\n");
-        exit(1);
-    }
-
-    filename = argv[1];
-    for (int i = 2; i < argc; i++) {
-        if (!strcmp(argv[i], "-eps")) eps = atof(argv[i + 1]);
-        if (!strcmp(argv[i], "-steps")) steps = atoi(argv[i + 1]);
-        if (!strcmp(argv[i], "-G")) G = atof(argv[i + 1]);
-        if (!strcmp(argv[i], "-dt")) dt = atof(argv[i + 1]);
-    }
-
-    //c_evaluate(filename,steps,G,eps,dt,n_params);
+int main(){
 
     return 0;
 }

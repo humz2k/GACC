@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Wed Jul 27 09:56:08 2022
+# Make data base, printed on Wed Jul 27 12:29:50 2022
 
 # Variables
 
@@ -49,7 +49,7 @@ LESSOPEN = | /usr/bin/lesspipe %s
 # environment
 VSCODE_CWD = /home/hqureshi
 # environment
-SSH_CONNECTION = 146.139.10.2 37857 146.139.10.20 22
+SSH_CONNECTION = 146.139.10.2 37899 146.139.10.20 22
 # environment
 PATH = /home/hqureshi/.vscode-server/bin/3b889b090b5ad5793f524b5d1d39fda662b96a2a/bin/remote-cli:/home/hqureshi/miniconda3/bin:/home/hqureshi/miniconda3/condabin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/cuda/bin:/usr/local/cuda/bin
 # environment
@@ -71,7 +71,7 @@ CONDA_EXE = /home/hqureshi/miniconda3/bin/conda
 # environment
 PWD = /home/hqureshi/GACC
 # environment
-VSCODE_IPC_HOOK_CLI = /run/user/333355/vscode-ipc-a40eb8a5-03f6-428e-9406-336956157349.sock
+VSCODE_IPC_HOOK_CLI = /run/user/333355/vscode-ipc-ac477261-b361-4db9-811c-20280511f65d.sock
 # automatic
 *D = $(patsubst %/,%,$(dir $*))
 # environment
@@ -105,11 +105,11 @@ MAKECMDGOALS := all
 # environment
 SHLVL = 3
 # environment
-XDG_SESSION_ID = 31072
+XDG_SESSION_ID = 31119
 # environment
 USER = hqureshi
 # makefile
-.DEFAULT_GOAL := thing
+.DEFAULT_GOAL := eval
 # automatic
 %D = $(patsubst %/,%,$(dir $%))
 # environment
@@ -125,7 +125,7 @@ MAKEFLAGS = pqrR
 # environment
 MFLAGS = -pqrR
 # environment
-SSH_CLIENT = 146.139.10.2 37857 22
+SSH_CLIENT = 146.139.10.2 37899 22
 # environment
 MAIL = /var/mail/hqureshi
 # automatic
@@ -181,6 +181,13 @@ _CE_CONDA =
 
 # Files
 
+eval2:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'makefile', line 5):
+	nvcc eval.cu force_solver.cu -lineinfo -Xptxas -v -Xcompiler="-fopenmp -fPIC" -o eval
+
 # Not a target:
 all:
 #  Command line target.
@@ -191,9 +198,16 @@ all:
 # Not a target:
 makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-07-26 15:55:08.136768287
+#  Last modified 2022-07-27 12:03:58.874175124
 #  File has been updated.
 #  Successfully updated.
+
+solve:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'makefile', line 8):
+	nvcc force_solver.cu -lineinfo -Xptxas -v -Xcompiler="-fopenmp -fPIC" -shared -o force_solver.dll
 
 # Not a target:
 .DEFAULT:
@@ -201,27 +215,27 @@ makefile:
 #  Modification time never checked.
 #  File has not been updated.
 
-thing:
+eval:
 #  Implicit rule search has not been done.
 #  Modification time never checked.
 #  File has not been updated.
 #  recipe to execute (from 'makefile', line 2):
-	nvcc eval.cu -lineinfo -Xptxas -v -Xcompiler="-fopenmp -fPIC" -shared -o eval.dll
+	nvcc eval.cu kernels/*.cu -lineinfo -Xptxas -v -Xcompiler="-fopenmp -fPIC" -shared -o eval.dll
 
 # files hash-table stats:
-# Load=5/1024=0%, Rehash=0, Collisions=0/15=0%
+# Load=7/1024=1%, Rehash=0, Collisions=0/17=0%
 # VPATH Search Paths
 
 # No 'vpath' search paths.
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 24 / storage = 207 B / avg = 8 B
-# current buf: size = 8162 B / used = 207 B / count = 24 / avg = 8 B
+# strcache buffers: 1 (0) / strings = 26 / storage = 210 B / avg = 8 B
+# current buf: size = 8162 B / used = 210 B / count = 26 / avg = 8 B
 
-# strcache performance: lookups = 29 / hit rate = 17%
+# strcache performance: lookups = 33 / hit rate = 21%
 # hash-table stats:
-# Load=24/8192=0%, Rehash=0, Collisions=2/29=7%
-# Finished Make data base on Wed Jul 27 09:56:08 2022
+# Load=26/8192=0%, Rehash=0, Collisions=2/33=6%
+# Finished Make data base on Wed Jul 27 12:29:50 2022
 
  
