@@ -1,5 +1,0 @@
-make --dry-run --keep-going --print-directory
-make: Entering directory '/home/hqureshi/GACC'
-nvcc eval.cu kernels/*.cu -lineinfo -Xptxas -v -Xcompiler="-fopenmp -fPIC" -shared -o eval.dll
-make: Leaving directory '/home/hqureshi/GACC'
- 

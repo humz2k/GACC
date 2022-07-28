@@ -7,8 +7,11 @@ import time
 from math import ceil
 import os
 
-libname = pathlib.Path().absolute() / "eval.dll"
-c_lib = ctypes.CDLL(libname)
+package_directory = os.path.dirname(os.path.abspath(__file__))
+
+libname = package_directory + "/cuda_eval.dll"
+
+cuda_eval = ctypes.CDLL(libname)
 
 def pad(df):
     pos = df.loc[:,["x","y","z"]].to_numpy().flatten().astype(np.float32)
@@ -28,7 +31,7 @@ def pad(df):
     return optimal_n,pos,vel,mass
 
 
-def evaluate(df,steps=0,G=1,eps=0,dt=1/64,n_params=10, solver = 0,outname="out.dat",v=False):
+def evaluate(df,steps=0,G=1,eps=0,dt=1/64,n_params=10, solver = 0,outname="out.dat",v=False,backend="cudaf4"):
 
     true_n = len(df.index)
 
@@ -51,7 +54,8 @@ def evaluate(df,steps=0,G=1,eps=0,dt=1/64,n_params=10, solver = 0,outname="out.d
     step_labels = np.repeat(np.arange(steps+1),n_particles)
     ids = np.repeat(np.reshape(np.arange(n_particles),(n_particles,1)),(steps+1),axis=1).flatten(order="F")
 
-    c_lib.c_evaluate(posPtr,velPtr,massPtr,ctypes.c_int(n_particles),ctypes.c_int(steps),ctypes.c_float(G),ctypes.c_float(eps),ctypes.c_float(dt),ctypes.c_int(n_params), ctypes.c_int(solver), ctypes.c_int(v), saveTimePtr, totalTimePtr, copyTimePtr)
+    if backend == "cudaf4":
+        cuda_eval.cuda_evaluate_f4(posPtr,velPtr,massPtr,ctypes.c_int(n_particles),ctypes.c_int(steps),ctypes.c_float(G),ctypes.c_float(eps),ctypes.c_float(dt),ctypes.c_int(n_params), ctypes.c_int(solver), ctypes.c_int(v), saveTimePtr, totalTimePtr, copyTimePtr)
 
     step_labels = pd.DataFrame(step_labels,columns=["step"],dtype=int)
     ids = pd.DataFrame(ids,columns=["id"],dtype=int)

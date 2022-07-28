@@ -1,49 +1,39 @@
-import sim
-import util
+import GACC
 import pandas as pd
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
-testdf = util.Distributions.Uniform(32)
-sim.evaluate(testdf,steps=0,dt=1/64,solver=1)
+nsteps = 1000
+n = 1000
+a = 1
+M = 1
+dt = 1e-3
+solver = 0
+eps = 0
+G = 1
 
-ns = np.arange(start=1,stop=20,step=10)**2 * 128
-nsteps = 0
+df = GACC.util.Distributions.Plummer(n,a=a,M=M)
 
-ys = []
-xs = []
-save_ys = []
+simDir = "/home/hqureshi/GACC/Sims/"
 
-for n in ns:
-    
-    for i in range(2):
-        print(n)
-        df = util.Distributions.Plummer(n)
-        first = time.perf_counter()
-        out,stats = sim.evaluate(df,steps=nsteps,dt=1/64,solver=0)
-        second = time.perf_counter()
-        print(stats)
-        #save_ys.append(save_time)
-        #xs.append(n)
-        #ys.append(second-first)
-        #print(save_time)
+existing_inits = [i.split(".")[0].split("_gen")[0] for i in os.listdir(simDir) if i.endswith(".initconditions")]
 
-'''
-plt.scatter(xs,ys,label="execution")
-plt.scatter(xs,save_ys,label="save")
-plt.xlabel('n')
-plt.ylabel('execution time')
-plt.legend()
-plt.tight_layout()
-plt.savefig('time.jpg')
-'''
+name = "PLUMMER_n" + str(n) + "_a" + str(a) + "_M" + str(M)
 
-#first1 = time.perf_counter()
-#out1 = sim.evaluate(df,steps=nsteps,dt=1/64,solver=0)
-#second1 = time.perf_counter()
+count = 0
+if name in existing_inits:
+    count = existing_inits.count(name)
 
-#error = np.abs(out.loc[:,["ax","ay","az","gpe"]].to_numpy() - out1.loc[:,["ax","ay","az","gpe"]].to_numpy())
-#print(error[-10:])
+name = name + "_gen" + str(count)
 
-#print(second-first,second1-first1)
+print(name)
+
+df.to_parquet(simDir + name + ".initconditions")
+
+out,stats = GACC.sim.evaluate(df,steps=nsteps,dt=dt,eps=0,solver=0)
+print(stats)
+
+out.to_parquet(simDir + name + "_dt" + str(dt).replace(".",",") + "_solver" + str(solver) + "_eps" + str(eps).replace(".",",") + "_G" + str(G).replace(".",",") + ".simulation")
+
