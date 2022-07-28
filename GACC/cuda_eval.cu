@@ -8,36 +8,36 @@
 #include "cuda_eval.h"
 #include "kernels/kernels.h"
 
-#define DATA_TYPE float
-
 using namespace std;
 
-void save(float* pos, float* vel, float* phi_acc, int n_particles, std::ofstream &out){
+void save(DATA_TYPE* pos, DATA_TYPE* vel, DATA_TYPE* phi_acc, int n_particles, std::ofstream &out){
 
     for (int i = 0; i < n_particles; i++){
 
-        out.write( reinterpret_cast<const char*>( &pos[i*3]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &pos[i*3 + 1]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &pos[i*3 + 2]), sizeof( float ));
+        out.write( reinterpret_cast<char*>( &pos[i*3]), sizeof( DATA_TYPE ));
+        out.write( reinterpret_cast<char*>( &pos[i*3 + 1]), sizeof( DATA_TYPE ));
+        out.write( reinterpret_cast<char*>( &pos[i*3 + 2]), sizeof( DATA_TYPE ));
 
-        out.write( reinterpret_cast<const char*>( &vel[i*3]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &vel[i*3 + 1]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &vel[i*3 + 2]), sizeof( float ));
+        out.write( reinterpret_cast<char*>( &vel[i*3]), sizeof( DATA_TYPE ));
+        out.write( reinterpret_cast<char*>( &vel[i*3 + 1]), sizeof( DATA_TYPE ));
+        out.write( reinterpret_cast<char*>( &vel[i*3 + 2]), sizeof( DATA_TYPE ));
 
-        out.write( reinterpret_cast<const char*>( &phi_acc[i*4]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &phi_acc[i*4 + 1]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &phi_acc[i*4 + 2]), sizeof( float ));
-        out.write( reinterpret_cast<const char*>( &phi_acc[i*4 + 3]), sizeof( float ));
+        out.write( reinterpret_cast<char*>( &phi_acc[i*4]), sizeof( DATA_TYPE ));
+        out.write( reinterpret_cast<char*>( &phi_acc[i*4 + 1]), sizeof( DATA_TYPE ));
+        out.write( reinterpret_cast<char*>( &phi_acc[i*4 + 2]), sizeof( DATA_TYPE ));
+        out.write( reinterpret_cast<char*>( &phi_acc[i*4 + 3]), sizeof( DATA_TYPE ));
 
     }
 
 }
 
 extern "C" { 
-    void cuda_evaluate_f4(float* input_pos, float* input_vel, float* input_mass, int n_particles, int steps, float G, float eps, float dt, int n_params, int solver, int v, double *saveTime, double *totalTime, double *copyTime){
+    void cuda_evaluate(DATA_TYPE* input_pos, DATA_TYPE* input_vel, DATA_TYPE* input_mass, int n_particles, int steps, DATA_TYPE G, DATA_TYPE eps, DATA_TYPE dt, int n_params, int solver, int v, double *saveTime, double *totalTime, double *copyTime){
 
         double first,second;
         double total_first,total_second;
+
+        cudaFree(0);
 
         *saveTime = 0;
         *totalTime = 0;
@@ -70,26 +70,26 @@ extern "C" {
             cout << "blockSize" << blockSize << endl;
         }
 
-        float *h_pos = (float*) malloc(n_particles * 3 * sizeof(float));
-        float *h_acc_phi = (float*) malloc(n_particles * 4 * sizeof(float));
-        float* h_vel = (float*) malloc(n_particles * 3 * sizeof(float));
+        DATA_TYPE *h_pos = (DATA_TYPE*) malloc(n_particles * 3 * sizeof(DATA_TYPE));
+        DATA_TYPE *h_acc_phi = (DATA_TYPE*) malloc(n_particles * 4 * sizeof(DATA_TYPE));
+        DATA_TYPE *h_vel = (DATA_TYPE*) malloc(n_particles * 3 * sizeof(DATA_TYPE));
 
-        float *d_pos;
-        cudaMalloc(&d_pos,n_particles * 3 * sizeof(float));
+        DATA_TYPE *d_pos;
+        cudaMalloc(&d_pos,n_particles * 3 * sizeof(DATA_TYPE));
 
-        float *d_acc_phi;
-        cudaMalloc(&d_acc_phi,n_particles * 4 * sizeof(float));
+        DATA_TYPE *d_acc_phi;
+        cudaMalloc(&d_acc_phi,n_particles * 4 * sizeof(DATA_TYPE));
 
-        float *d_vel;
-        cudaMalloc(&d_vel,n_particles * 3 * sizeof(float));
+        DATA_TYPE *d_vel;
+        cudaMalloc(&d_vel,n_particles * 3 * sizeof(DATA_TYPE));
 
-        float *d_mass;
-        cudaMalloc(&d_mass,n_particles * sizeof(float));
+        DATA_TYPE *d_mass;
+        cudaMalloc(&d_mass,n_particles * sizeof(DATA_TYPE));
 
         first = omp_get_wtime();
-        cudaMemcpy(d_pos,input_pos,n_particles * 3 * sizeof(float),cudaMemcpyHostToDevice);
-        cudaMemcpy(d_vel,input_vel,n_particles * 3 * sizeof(float),cudaMemcpyHostToDevice);
-        cudaMemcpy(d_mass,input_mass,n_particles * sizeof(float),cudaMemcpyHostToDevice);
+        cudaMemcpy(d_pos,input_pos,n_particles * 3 * sizeof(DATA_TYPE),cudaMemcpyHostToDevice);
+        cudaMemcpy(d_vel,input_vel,n_particles * 3 * sizeof(DATA_TYPE),cudaMemcpyHostToDevice);
+        cudaMemcpy(d_mass,input_mass,n_particles * sizeof(DATA_TYPE),cudaMemcpyHostToDevice);
         second = omp_get_wtime();
         *copyTime += second-first;
 
@@ -101,7 +101,7 @@ extern "C" {
                 break;
             
             case 1:
-                force_solve_shared_mem<<<numBlocks,blockSize,blockSize * 4 * sizeof(float)>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
+                force_solve_shared_mem<<<numBlocks,blockSize,blockSize * 4 * sizeof(DATA_TYPE)>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
                 break;
 
         }
@@ -111,7 +111,7 @@ extern "C" {
         //cudaMemcpy(h_pos,d_pos,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
         //cudaMemcpy(h_vel,d_vel,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
         first = omp_get_wtime();
-        cudaMemcpy(h_acc_phi,d_acc_phi,n_particles * 4 * sizeof(float),cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_acc_phi,d_acc_phi,n_particles * 4 * sizeof(DATA_TYPE),cudaMemcpyDeviceToHost);
         second = omp_get_wtime();
         *copyTime += second-first;
 
@@ -125,7 +125,7 @@ extern "C" {
         for (int step = 0; step < steps; step++){
 
             fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5 * dt);
-            fast_add_3to3<<<numBlocks,blockSize,n_particles * 4 * sizeof(float)>>>(d_vel,d_pos,1 * dt);
+            fast_add_3to3<<<numBlocks,blockSize,n_particles * 4 * sizeof(DATA_TYPE)>>>(d_vel,d_pos,1 * dt);
 
             switch (solver){
 
@@ -134,7 +134,7 @@ extern "C" {
                     break;
                 
                 case 1:
-                    force_solve_shared_mem<<<numBlocks,blockSize,blockSize * 4 * sizeof(float)>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
+                    force_solve_shared_mem<<<numBlocks,blockSize,blockSize * 4 * sizeof(DATA_TYPE)>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
                     break;
 
             }
@@ -144,9 +144,9 @@ extern "C" {
             cudaDeviceSynchronize();
 
             first = omp_get_wtime();
-            cudaMemcpy(h_pos,d_pos,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
-            cudaMemcpy(h_vel,d_vel,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
-            cudaMemcpy(h_acc_phi,d_acc_phi,n_particles * 4 * sizeof(float),cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_pos,d_pos,n_particles * 3 * sizeof(DATA_TYPE),cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_vel,d_vel,n_particles * 3 * sizeof(DATA_TYPE),cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_acc_phi,d_acc_phi,n_particles * 4 * sizeof(DATA_TYPE),cudaMemcpyDeviceToHost);
             second = omp_get_wtime();
             *copyTime += second-first;
 

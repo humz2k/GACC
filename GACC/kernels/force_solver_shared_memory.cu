@@ -1,39 +1,39 @@
 #include "kernels.h"
 
 __global__
-void force_solve_shared_mem(float* pos, float* mass, float* acc_phi, float G, float eps, int n_particles){
+void force_solve_shared_mem(DATA_TYPE* pos, DATA_TYPE* mass, DATA_TYPE* acc_phi, DATA_TYPE G, DATA_TYPE eps, int n_particles){
 
      //TODO: use local memory: make shared memory array of size blocksize. 
 
     
-    extern __shared__ float s[];
+    extern __shared__ DATA_TYPE s[];
 
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     int j;
     int k;
 
-    float pos_ix = pos[i*3];
-    float pos_iy = pos[i*3 + 1];
-    float pos_iz = pos[i*3 + 2];
-    float mass_i = mass[i];
+    DATA_TYPE pos_ix = pos[i*3];
+    DATA_TYPE pos_iy = pos[i*3 + 1];
+    DATA_TYPE pos_iz = pos[i*3 + 2];
+    DATA_TYPE mass_i = mass[i];
 
-    float pos_kx;
-    float pos_ky;
-    float pos_kz;
-    float mass_k;
+    DATA_TYPE pos_kx;
+    DATA_TYPE pos_ky;
+    DATA_TYPE pos_kz;
+    DATA_TYPE mass_k;
 
-    float diffx;
-    float diffy;
-    float diffz;
+    DATA_TYPE diffx;
+    DATA_TYPE diffy;
+    DATA_TYPE diffz;
 
-    float ax = 0;
-    float ay = 0;
-    float az = 0;
-    float gpe = 0;
+    DATA_TYPE ax = 0;
+    DATA_TYPE ay = 0;
+    DATA_TYPE az = 0;
+    DATA_TYPE gpe = 0;
 
-    float dist;
+    DATA_TYPE dist;
 
-    float acc_mul;
+    DATA_TYPE acc_mul;
 
     int n_repeats = n_particles / blockDim.x;
     int laneID = threadIdx.x % 32;

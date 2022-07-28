@@ -1,7 +1,7 @@
 #include "kernels.h"
 
 __global__
-void force_solve_gpu(float* pos, float* mass, float* acc_phi, float G, float eps, int n_particles){
+void force_solve_gpu(DATA_TYPE* pos, DATA_TYPE* mass, DATA_TYPE* acc_phi, DATA_TYPE G, DATA_TYPE eps, int n_particles){
 
      //TODO: use local memory: make shared memory array of size blocksize. 
 
@@ -20,28 +20,28 @@ void force_solve_gpu(float* pos, float* mass, float* acc_phi, float G, float eps
     int j = 0;
 
     
-    float pos_ix = pos[i*3];
-    float pos_iy = pos[i*3 + 1];
-    float pos_iz = pos[i*3 + 2];
+    DATA_TYPE pos_ix = pos[i*3];
+    DATA_TYPE pos_iy = pos[i*3 + 1];
+    DATA_TYPE pos_iz = pos[i*3 + 2];
 
-    float diffx;
-    float diffy;
-    float diffz;
+    DATA_TYPE diffx;
+    DATA_TYPE diffy;
+    DATA_TYPE diffz;
 
-    float pos_jx;
-    float pos_jy;
-    float pos_jz;
+    DATA_TYPE pos_jx;
+    DATA_TYPE pos_jy;
+    DATA_TYPE pos_jz;
 
-    float ax = 0;
-    float ay = 0;
-    float az = 0;
-    float gpe = 0;
+    DATA_TYPE ax = 0;
+    DATA_TYPE ay = 0;
+    DATA_TYPE az = 0;
+    DATA_TYPE gpe = 0;
 
-    float mass_i = mass[i];
-    float mass_j = 0;
+    DATA_TYPE mass_i = mass[i];
+    DATA_TYPE mass_j = 0;
 
-    float dist = 0;
-    float acc_mul = 0;
+    DATA_TYPE dist = 0;
+    DATA_TYPE acc_mul = 0;
 
     
 

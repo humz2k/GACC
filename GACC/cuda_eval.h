@@ -1,5 +1,5 @@
 //eval.h
 
-extern "C" { void cuda_evaluate_f4(float* input_pos, float* input_vel, float* input_mass, int n_particles, int steps, float G, float eps, float dt, int n_params, int solver, int v, double *saveTime, double *totalTime, double *copyTime); }
+#define _DATA_TYPE float
 
-extern "C" { void printArray(float* array, int length); }
+extern "C" { void cuda_evaluate(_DATA_TYPE* input_pos, _DATA_TYPE* input_vel, _DATA_TYPE* input_mass, int n_particles, int steps, _DATA_TYPE G, _DATA_TYPE eps, _DATA_TYPE dt, int n_params, int solver, int v, double *saveTime, double *totalTime, double *copyTime); }

@@ -1,8 +1,12 @@
-eval:
-	nvcc cuda_eval.cu kernels/*.cu -lineinfo -Xptxas -v -Xcompiler="-fopenmp -fPIC" -shared -o cuda_eval.dll
+f4:
+	nvcc cuda_eval.cu kernels/*.cu -lineinfo -Xptxas -v -Xcompiler="-fopenmp -fPIC" -shared -o cuda_eval_f4.dll
 
-eval2:
-	nvcc eval.cu kernels/*.cu -lineinfo -Xptxas -v -Xcompiler="-fopenmp -fPIC" -o eval
+f8:
+	nvcc cuda_eval.cu kernels/*.cu -lineinfo -Xptxas -v -Xcompiler="-fopenmp -fPIC" -shared -o cuda_eval_f8.dll
 
-solve:
-	nvcc force_solver.cu -lineinfo -Xptxas -v -Xcompiler="-fopenmp -fPIC" -shared -o force_solver.dll
+ompf4:
+	g++ omp_eval.cpp -fopenmp -fPIC -shared -o omp_eval_f4.dll
+
+ompf8:
+	g++ omp_eval.cpp -fopenmp -fPIC -shared -o omp_eval_f8.dll
+

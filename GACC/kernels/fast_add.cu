@@ -1,7 +1,7 @@
 #include "kernels.h"
 
 __global__
-void fast_add_3to3(float *s, float *d, float mul){
+void fast_add_3to3(DATA_TYPE *s, DATA_TYPE *d, DATA_TYPE mul){
 
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -12,7 +12,7 @@ void fast_add_3to3(float *s, float *d, float mul){
 }
 
 __global__
-void fast_add_4to3(float *s, float *d, float mul){
+void fast_add_4to3(DATA_TYPE *s, DATA_TYPE *d, DATA_TYPE mul){
 
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
