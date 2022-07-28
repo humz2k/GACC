@@ -114,9 +114,16 @@ void save(float* pos, float* vel, float* phi_acc, int n_particles, std::ofstream
 }
 
 extern "C" { 
-    double c_evaluate(float* input_pos, float* input_vel, float* input_mass, int n_particles, int steps, float G, float eps, float dt, int n_params, int solver, int v){
+    void c_evaluate(float* input_pos, float* input_vel, float* input_mass, int n_particles, int steps, float G, float eps, float dt, int n_params, int solver, int v, double *saveTime, double *totalTime, double *copyTime){
 
         double first,second;
+        double total_first,total_second;
+
+        *saveTime = 0;
+        *totalTime = 0;
+        *copyTime = 0;
+
+        total_first = omp_get_wtime();
 
         std::ofstream out;
         out.open( "out.dat", std::ios::out | std::ios::binary);
@@ -159,9 +166,13 @@ extern "C" {
         float *d_mass;
         cudaMalloc(&d_mass,n_particles * sizeof(float));
 
+        first = omp_get_wtime();
         cudaMemcpy(d_pos,input_pos,n_particles * 3 * sizeof(float),cudaMemcpyHostToDevice);
         cudaMemcpy(d_vel,input_vel,n_particles * 3 * sizeof(float),cudaMemcpyHostToDevice);
         cudaMemcpy(d_mass,input_mass,n_particles * sizeof(float),cudaMemcpyHostToDevice);
+        second = omp_get_wtime();
+        *copyTime += second-first;
+
 
         switch (solver){
 
@@ -175,15 +186,20 @@ extern "C" {
 
         }
 
-        cudaMemcpy(h_pos,d_pos,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
-        cudaMemcpy(h_vel,d_vel,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
+        cudaDeviceSynchronize();
+
+        //cudaMemcpy(h_pos,d_pos,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
+        //cudaMemcpy(h_vel,d_vel,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
+        first = omp_get_wtime();
         cudaMemcpy(h_acc_phi,d_acc_phi,n_particles * 4 * sizeof(float),cudaMemcpyDeviceToHost);
+        second = omp_get_wtime();
+        *copyTime += second-first;
 
         first = omp_get_wtime();
-
-        save(h_pos,h_vel,h_acc_phi,n_particles,fp);
-
+        save(input_pos,input_vel,h_acc_phi,n_particles,fp);
         second = omp_get_wtime();
+
+        *saveTime += second-first;
 
 
         for (int step = 0; step < steps; step++){
@@ -205,11 +221,19 @@ extern "C" {
 
             fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5 * dt);
 
+            cudaDeviceSynchronize();
+
+            first = omp_get_wtime();
             cudaMemcpy(h_pos,d_pos,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
             cudaMemcpy(h_vel,d_vel,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
             cudaMemcpy(h_acc_phi,d_acc_phi,n_particles * 4 * sizeof(float),cudaMemcpyDeviceToHost);
+            second = omp_get_wtime();
+            *copyTime += second-first;
 
+            first = omp_get_wtime();
             save(h_pos,h_vel,h_acc_phi,n_particles,fp);
+            second = omp_get_wtime();
+            *saveTime += second-first;
 
         }
 
@@ -222,55 +246,9 @@ extern "C" {
         free(h_vel);
         free(h_acc_phi);
 
-        return double(second-first);
+        total_second = omp_get_wtime();
 
-        /*
-
-        int pos_width = 4, vel_width = 3, height = n_particles;
-
-        float *d_pos,*d_vel,*d_acc_phi;
-        float *h_pos,*h_vel,*h_acc_phi;
-
-        size_t size4 = (n_particles * 4) * sizeof(float);
-        size_t size3 = (n_particles * 3) * sizeof(float);
-        
-        h_pos = (float*) malloc(size4);
-        cudaMalloc(&d_pos,size4);
-        cudaMemcpy(d_pos,input_pos,n_particles * 4 * sizeof(float),cudaMemcpyHostToDevice);
-
-        h_vel = (float*) malloc(size3);
-        cudaMalloc(&d_vel,size3);
-        cudaMemcpy(d_vel,input_vel,n_particles * 3 * sizeof(float),cudaMemcpyHostToDevice);
-
-        h_acc_phi = (float*) malloc(size4);
-        cudaMalloc(&d_acc_phi,size4);
-
-        force_solve_gpu<<<numBlocks,blockSize>>>(d_pos,d_acc_phi,G,eps,n_particles);
-
-        for (int step = 0; step < steps + 1; step++){
-
-            cudaMemcpy(h_pos,d_pos,n_particles * 4 * sizeof(float),cudaMemcpyDeviceToHost);
-            cudaMemcpy(h_vel,d_vel,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
-            cudaMemcpy(h_acc_phi,d_acc_phi,n_particles * 4 * sizeof(float),cudaMemcpyDeviceToHost);
-
-            save(h_pos,h_vel,h_acc_phi,n_particles,fp);
-
-            fast_add<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5,4,3);
-            fast_add<<<numBlocks,blockSize>>>(d_vel,d_pos,1,3,4);
-
-            force_solve_gpu<<<numBlocks,blockSize>>>(d_pos,d_acc_phi,G,eps,n_particles);
-
-            fast_add<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5,4,3);
-
-        }
-        
-        cudaFree(d_pos);
-        cudaFree(d_vel);
-        cudaFree(d_acc_phi);
-        free(h_pos);
-        free(h_vel);
-        free(h_acc_phi);
-        */
+        *totalTime = total_second - total_first;
     }
 }
 

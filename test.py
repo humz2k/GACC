@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 testdf = util.Distributions.Uniform(32)
 sim.evaluate(testdf,steps=0,dt=1/64,solver=1)
 
-ns = np.arange(start=1,stop=80,step=10)**2 * 128
+ns = np.arange(start=1,stop=20,step=10)**2 * 128
 nsteps = 0
 
 ys = []
@@ -21,13 +21,15 @@ for n in ns:
         print(n)
         df = util.Distributions.Plummer(n)
         first = time.perf_counter()
-        out,save_time = sim.evaluate(df,steps=nsteps,dt=1/64,solver=0)
+        out,stats = sim.evaluate(df,steps=nsteps,dt=1/64,solver=0)
         second = time.perf_counter()
-        save_ys.append(save_time)
-        xs.append(n)
-        ys.append(second-first)
-        print(save_time/(second-first))
+        print(stats)
+        #save_ys.append(save_time)
+        #xs.append(n)
+        #ys.append(second-first)
+        #print(save_time)
 
+'''
 plt.scatter(xs,ys,label="execution")
 plt.scatter(xs,save_ys,label="save")
 plt.xlabel('n')
@@ -35,6 +37,7 @@ plt.ylabel('execution time')
 plt.legend()
 plt.tight_layout()
 plt.savefig('time.jpg')
+'''
 
 #first1 = time.perf_counter()
 #out1 = sim.evaluate(df,steps=nsteps,dt=1/64,solver=0)

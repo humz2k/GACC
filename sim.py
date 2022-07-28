@@ -33,6 +33,16 @@ def evaluate(df,steps=0,G=1,eps=0,dt=1/64,n_params=10, solver = 0,outname="out.d
 
     n_particles,pos,vel,mass = pad(df)
 
+    pointer = ctypes.POINTER(ctypes.c_double)
+
+    save_time = ctypes.c_double(0)
+    total_time = ctypes.c_double(0)
+    copy_time = ctypes.c_double(0)
+    
+    saveTimePtr = pointer(save_time)
+    totalTimePtr = pointer(total_time)
+    copyTimePtr = pointer(copy_time)
+
     posPtr = pos.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
     velPtr = vel.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
     massPtr = mass.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
@@ -40,11 +50,7 @@ def evaluate(df,steps=0,G=1,eps=0,dt=1/64,n_params=10, solver = 0,outname="out.d
     step_labels = np.repeat(np.arange(steps+1),n_particles)
     ids = np.repeat(np.reshape(np.arange(n_particles),(n_particles,1)),(steps+1),axis=1).flatten(order="F")
 
-    c_lib.c_evaluate.restype = ctypes.c_double
-
-    temp = c_lib.c_evaluate(posPtr,velPtr,massPtr,ctypes.c_int(n_particles),ctypes.c_int(steps),ctypes.c_float(G),ctypes.c_float(eps),ctypes.c_float(dt),ctypes.c_int(n_params), ctypes.c_int(solver), ctypes.c_int(v))
-
-    save_time = ctypes.c_double(temp).value
+    c_lib.c_evaluate(posPtr,velPtr,massPtr,ctypes.c_int(n_particles),ctypes.c_int(steps),ctypes.c_float(G),ctypes.c_float(eps),ctypes.c_float(dt),ctypes.c_int(n_params), ctypes.c_int(solver), ctypes.c_int(v), saveTimePtr, totalTimePtr, copyTimePtr)
 
     step_labels = pd.DataFrame(step_labels,columns=["step"],dtype=int)
     ids = pd.DataFrame(ids,columns=["id"],dtype=int)
@@ -52,7 +58,12 @@ def evaluate(df,steps=0,G=1,eps=0,dt=1/64,n_params=10, solver = 0,outname="out.d
 
     out_df = pd.concat([step_labels,ids,data],axis=1)
 
-    return out_df[(out_df["id"] < true_n)].reset_index(),save_time
+    stats = {}
+    stats["total_save_time"] = save_time.value
+    stats["total_copy_time"] = copy_time.value
+    stats["total_eval_time"] = total_time.value
+
+    return out_df[(out_df["id"] < true_n)].reset_index(),stats
 
 '''
 a = pd.read_csv("input3.csv")
