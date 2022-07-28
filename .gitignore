@@ -35,3 +35,5 @@
 *.simulation
 *.jpg
 /.vscode
+*.pyc
+*.pyc
