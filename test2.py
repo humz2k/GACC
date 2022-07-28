@@ -13,7 +13,7 @@ eps = 0
 
 simDir = "/home/hqureshi/GACC/Sims/"
 
-name = "PLUMMER_n1000_a100_M50_gen0"
+name = ""
 
 df = pd.read_parquet(simDir + name + ".initconditions")
 

@@ -3,7 +3,7 @@ import GACC
 import numpy as np
 import matplotlib.pyplot as plt
 
-RUN = "PLUMMER_n1000_a1_M1_gen0_dt0,0001_solver0_eps0_G1"
+RUN = "PLUMMER_n1000000_a1000_M50_gen0_dt0,001_solver0_eps0_G1"
 inputRUN = RUN.split("_dt")[0]
 
 outdf = pd.read_parquet("/home/hqureshi/GACC/Sims/" + RUN + ".simulation")

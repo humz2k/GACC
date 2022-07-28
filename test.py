@@ -5,10 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-nsteps = 1000
-n = 1000
-a = 1
-M = 1
+nsteps = 1
+n = 1000000
+a = 1000
+M = 50
 dt = 1e-3
 solver = 0
 eps = 0
