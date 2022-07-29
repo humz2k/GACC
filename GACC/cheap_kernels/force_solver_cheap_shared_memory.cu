@@ -84,16 +84,13 @@ void force_solve_cheap_shared_mem(half2* pos, half* mass, float* acc_phi, float 
                     h2Gmul = __hmul2(h2G,h2mass_j); //multiplies G by mass_j to half2
                     h2acc_mul = __h2div(h2Gmul,h2temp0); //divides by distance**3
 
-                    htemp0 = __high2half(h2temp1); //calculates mass_i * distance**3 and stores in a half
-                    htemp1 = __hmul(htemp0,hmass_i);
-
-                    h2temp2 = __halves2half2(hdiffz,htemp1); //combines diffz and massi*distance**3 into one half2
+                    htemp1 = __hdiv(__hmul(hmass_i,__high2half(h2Gmul)),__high2half(h2dist));
 
                     h2temp0 = __hmul2(h2acc_mul,h2diffxy); //calculates acceleration for xy
-                    h2temp1 = __hmul2(h2acc_mul,h2temp2); //calculates acceleration for z and multiplies (G * mj / d**3) by mass_i * d**2 for gpe
+                    htemp0 = __hmul(__high2half(h2acc_mul),hdiffz); //calculates acceleration for z and multiplies (G * mj / d**3) by mass_i * d**2 for gpe
 
                     h2axy = __hadd2(h2axy,h2temp0); //adds acceleration of xy to h2axy
-                    h2az_gpe = __hadd2(h2az_gpe,h2temp1); //adds acceleation of z and gpe to h2az_gpe
+                    h2az_gpe = __hadd2(h2az_gpe,__halves2half2(htemp0,htemp1)); //adds acceleation of z and gpe to h2az_gpe
                 }
 
             }
