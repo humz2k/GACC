@@ -93,6 +93,7 @@ extern "C" {
         second = omp_get_wtime();
         *copyTime += second-first;
 
+        size_t shared_mem_size = blockSize * 4 * sizeof(DATA_TYPE);
 
         switch (solver){
 
@@ -101,7 +102,7 @@ extern "C" {
                 break;
             
             case 1:
-                force_solve_shared_mem<<<numBlocks,blockSize,blockSize * 4 * sizeof(DATA_TYPE)>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
+                force_solve_shared_mem<<<numBlocks,blockSize,shared_mem_size>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
                 break;
 
         }
@@ -130,7 +131,7 @@ extern "C" {
                     break;
                 
                 case 1:
-                    force_solve_shared_mem<<<numBlocks,blockSize,blockSize * 4 * sizeof(DATA_TYPE)>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
+                    force_solve_shared_mem<<<numBlocks,blockSize,shared_mem_size>>>(d_pos,d_mass,d_acc_phi,G,eps,n_particles);
                     break;
 
             }

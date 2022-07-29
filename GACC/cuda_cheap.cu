@@ -39,6 +39,7 @@ extern "C" {
         double total_first,total_second;
 
         cudaFree(0);
+        cudaDeviceSynchronize();
 
         total_first = omp_get_wtime();
 
@@ -92,11 +93,12 @@ extern "C" {
 
         copyFloat2Half2<<<numBlocks,blockSize>>>(d_pos,d_h2pos);
         copyFloat2Half_dim1<<<numBlocks,blockSize>>>(d_mass,d_hmass);
-        cudaDeviceSynchronize();
         second = omp_get_wtime();
         *copyTime += second-first;
 
         cudaFree(d_mass);
+
+        size_t shared_mem_size = blockSize * 2 * sizeof(half2);
 
         switch(solver){
 
@@ -104,7 +106,7 @@ extern "C" {
                 force_solve_cheap<<<numBlocks,blockSize>>>(d_h2pos,d_hmass,d_acc_phi,G,eps,n_particles);
                 break;
             case 1:
-                force_solve_cheap_shared_mem<<<numBlocks,blockSize,blockSize * 2 * sizeof(half2)>>>(d_h2pos,d_hmass,d_acc_phi,G,eps,n_particles);
+                force_solve_cheap_shared_mem<<<numBlocks,blockSize,shared_mem_size>>>(d_h2pos,d_hmass,d_acc_phi,G,eps,n_particles);
                 break;
 
         }
@@ -123,10 +125,6 @@ extern "C" {
             fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5 * dt);
             fast_add_3to3<<<numBlocks,blockSize>>>(d_vel,d_pos,1 * dt);
 
-            //cudaMemcpy(h_pos,d_pos,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
-            //cudaMemcpy(d_pos,h_pos,n_particles * 3 * sizeof(float),cudaMemcpyHostToDevice);
-            //cudaDeviceSynchronize();
-
             copyFloat2Half2<<<numBlocks,blockSize>>>(d_pos,d_h2pos);
 
             switch(solver){
@@ -135,7 +133,7 @@ extern "C" {
                     force_solve_cheap<<<numBlocks,blockSize>>>(d_h2pos,d_hmass,d_acc_phi,G,eps,n_particles);
                     break;
                 case 1:
-                    force_solve_cheap_shared_mem<<<numBlocks,blockSize,blockSize * 2 * sizeof(half2)>>>(d_h2pos,d_hmass,d_acc_phi,G,eps,n_particles);
+                    force_solve_cheap_shared_mem<<<numBlocks,blockSize,shared_mem_size>>>(d_h2pos,d_hmass,d_acc_phi,G,eps,n_particles);
                     break;
 
             }
