@@ -36,7 +36,7 @@ void force_solve_shared_mem(DATA_TYPE* pos, DATA_TYPE* mass, DATA_TYPE* acc_phi,
     DATA_TYPE acc_mul;
 
     int n_repeats = n_particles / blockDim.x;
-    int laneID = threadIdx.x % 32;
+    //int laneID = threadIdx.x % 32;
 
     for (j = 0; j < n_repeats; j++){
 

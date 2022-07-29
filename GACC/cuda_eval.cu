@@ -108,16 +108,12 @@ extern "C" {
 
         cudaDeviceSynchronize();
 
-        //cudaMemcpy(h_pos,d_pos,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
-        //cudaMemcpy(h_vel,d_vel,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
         first = omp_get_wtime();
+        cudaMemcpy(h_pos,d_pos,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_vel,d_vel,n_particles * 3 * sizeof(float),cudaMemcpyDeviceToHost);
         cudaMemcpy(h_acc_phi,d_acc_phi,n_particles * 4 * sizeof(DATA_TYPE),cudaMemcpyDeviceToHost);
         second = omp_get_wtime();
         *copyTime += second-first;
-
-        first = omp_get_wtime();
-        save(input_pos,input_vel,h_acc_phi,n_particles,fp);
-        second = omp_get_wtime();
 
         *saveTime += second-first;
 
@@ -125,7 +121,7 @@ extern "C" {
         for (int step = 0; step < steps; step++){
 
             fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5 * dt);
-            fast_add_3to3<<<numBlocks,blockSize,n_particles * 4 * sizeof(DATA_TYPE)>>>(d_vel,d_pos,1 * dt);
+            fast_add_3to3<<<numBlocks,blockSize>>>(d_vel,d_pos,1 * dt);
 
             switch (solver){
 
@@ -141,6 +137,11 @@ extern "C" {
 
             fast_add_4to3<<<numBlocks,blockSize>>>(d_acc_phi,d_vel,0.5 * dt);
 
+            first = omp_get_wtime();
+            save(h_pos,h_vel,h_acc_phi,n_particles,fp);
+            second = omp_get_wtime();
+            *saveTime += second-first;
+
             cudaDeviceSynchronize();
 
             first = omp_get_wtime();
@@ -150,12 +151,12 @@ extern "C" {
             second = omp_get_wtime();
             *copyTime += second-first;
 
-            first = omp_get_wtime();
-            save(h_pos,h_vel,h_acc_phi,n_particles,fp);
-            second = omp_get_wtime();
-            *saveTime += second-first;
-
         }
+
+        first = omp_get_wtime();
+        save(h_pos,h_vel,h_acc_phi,n_particles,fp);
+        second = omp_get_wtime();
+        *saveTime += second-first;
 
         cudaFree(d_pos);
         cudaFree(d_vel);

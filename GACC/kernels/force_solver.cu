@@ -48,24 +48,27 @@ void force_solve_gpu(DATA_TYPE* pos, DATA_TYPE* mass, DATA_TYPE* acc_phi, DATA_T
     for (j = 0; j < n_particles; j++){
 
         if (j != i) {
-            pos_jx = pos[j*3];
-            pos_jy = pos[j*3 + 1];
-            pos_jz = pos[j*3 + 2];
 
-            mass_j = mass[j];
-            
-            diffx = pos_jx - pos_ix;
-            diffy = pos_jy - pos_iy;
-            diffz = pos_jz - pos_iz;
+            if (mass_i != 0){
+                pos_jx = pos[j*3];
+                pos_jy = pos[j*3 + 1];
+                pos_jz = pos[j*3 + 2];
 
-            dist = sqrt((diffx*diffx) + (diffy*diffy) + (diffz*diffz) + eps);
+                mass_j = mass[j];
+                
+                diffx = pos_jx - pos_ix;
+                diffy = pos_jy - pos_iy;
+                diffz = pos_jz - pos_iz;
 
-            acc_mul = G * mass_j / (dist * dist * dist);
-            ax = ax + diffx * acc_mul;
-            ay = ay + diffy * acc_mul;
-            az = az + diffz * acc_mul;
+                dist = sqrt((diffx*diffx) + (diffy*diffy) + (diffz*diffz) + eps);
 
-            gpe = gpe + (-1) * G * mass_j * mass_i / dist;
+                acc_mul = G * mass_j / (dist * dist * dist);
+                ax = ax + diffx * acc_mul;
+                ay = ay + diffy * acc_mul;
+                az = az + diffz * acc_mul;
+
+                gpe = gpe + (-1) * G * mass_j * mass_i / dist;
+            }
         }
 
     }
